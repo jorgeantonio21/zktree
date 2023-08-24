@@ -1,4 +1,4 @@
-use crate::circuit_compiler::ProofData;
+use crate::proof_data::ProofData;
 use anyhow::Error;
 use plonky2::{
     field::extension::Extendable, hash::hash_types::RichField, plonk::config::GenericConfig,

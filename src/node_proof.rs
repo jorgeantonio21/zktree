@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Error};
 use plonky2::{
-    field::{extension::Extendable, types::Field},
+    field::extension::Extendable,
     hash::hash_types::{HashOut, RichField},
     plonk::config::{AlgebraicHasher, GenericConfig},
 };
@@ -67,7 +67,7 @@ where
         Ok(Self {
             input_hash,
             circuit_hash,
-            proof_data: 
+            proof_data,
         })
     }
 }
