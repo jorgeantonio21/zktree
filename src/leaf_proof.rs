@@ -16,3 +16,20 @@ where
     circuit_hash: H,
     proof_data: ProofData<F, C, D>,
 }
+
+impl<C, F, H, const D: usize> LeafProof<C, F, H, D>
+where
+    H: AlgebraicHasher<F>,
+    F: RichField + Extendable<D>,
+    C: GenericConfig<D, F = F>,
+{
+    pub fn new(input_hash: H, circuit_hash: H, proof_data: ProofData<F, C, D>) -> Self {
+        Self {
+            input_hash,
+            circuit_hash,
+            proof_data,
+        }
+    }
+
+    pub fn new_from_user_proof() {}
+}
