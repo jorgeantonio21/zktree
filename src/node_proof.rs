@@ -7,7 +7,7 @@ use plonky2::{
 
 use std::marker::PhantomData;
 
-use crate::proof_data::ProofData;
+use crate::{node_circuit::NodeCircuit, proof_data::ProofData, tree_proof::Proof};
 
 pub struct NodeProof<C, F, H, const D: usize>
 where
@@ -27,24 +27,24 @@ where
     F: RichField + Extendable<D>,
     C: GenericConfig<D, F = F, Hasher = H>,
 {
-    pub fn new_from_node_proofs(
-        node_proof_1: NodeProof<C, F, H, D>,
-        node_proof_2: NodeProof<C, F, H, D>,
+    pub fn new_from_node_proofs<P: Proof<C, F, D>>(
+        node_proof_1: P,
+        node_proof_2: P,
     ) -> Result<Self, Error> {
-        let node_input_hash_1 = node_proof_1.input_hash;
-        let node_input_hash_2 = node_proof_2.input_hash;
+        let node_input_hash_1 = node_proof_1.input_hash();
+        let node_input_hash_2 = node_proof_2.input_hash();
         let input_hash =
             H::hash_no_pad(&[node_input_hash_1.elements, node_input_hash_2.elements].concat());
 
-        let node_circuit_hash_1 = node_proof_1.circuit_hash;
-        let node_circuit_hash_2 = node_proof_2.circuit_hash;
+        let node_circuit_hash_1 = node_proof_1.circuit_hash();
+        let node_circuit_hash_2 = node_proof_2.circuit_hash();
         let node_verifier_data_hash_1 = node_proof_1
-            .proof_data
+            .proof()
             .circuit_data
             .verifier_only
             .circuit_digest;
         let node_verifier_data_hash_2 = node_proof_2
-            .proof_data
+            .proof()
             .circuit_data
             .verifier_only
             .circuit_digest;
@@ -63,6 +63,8 @@ where
             ]
             .concat(),
         );
+
+        let note_circuit = NodeCircuit::new(node_proof_1, node_proof_2);
         todo!()
 
         // Ok(Self {
