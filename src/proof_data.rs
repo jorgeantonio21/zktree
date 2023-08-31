@@ -11,3 +11,4 @@ where
     pub(crate) proof_with_pis: ProofWithPublicInputs<F, C, D>,
     pub(crate) circuit_data: CircuitData<F, C, D>,
 }
+

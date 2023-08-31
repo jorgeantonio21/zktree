@@ -7,7 +7,10 @@ use plonky2::{
 
 use std::marker::PhantomData;
 
-use crate::{node_circuit::NodeCircuit, proof_data::ProofData, tree_proof::Proof};
+use crate::{
+    circuit_compiler::CircuitCompiler, node_circuit::NodeCircuit, proof_data::ProofData,
+    provable::Provable, tree_proof::Proof,
+};
 
 pub struct NodeProof<C, F, H, const D: usize>
 where
@@ -64,7 +67,8 @@ where
             .concat(),
         );
 
-        let note_circuit = NodeCircuit::new(node_proof_1, node_proof_2);
+        let node_circuit = NodeCircuit::new(node_proof_1, node_proof_2);
+        let proof_data = node_circuit.proof();
         todo!()
 
         // Ok(Self {
@@ -72,5 +76,28 @@ where
         //     circuit_hash,
         //     proof_data,
         // })
+    }
+}
+
+impl<C, F, H, const D: usize> Proof<C, F, D> for NodeProof<C, F, H, D>
+where
+    C: GenericConfig<D, F = F, Hasher = H>,
+    F: RichField + Extendable<D>,
+    H: AlgebraicHasher<F>,
+{
+    fn circuit_hash(&self) -> HashOut<F> {
+        self.circuit_hash
+    }
+
+    fn input_hash(&self) -> HashOut<F> {
+        self.input_hash
+    }
+
+    fn proof(&self) -> &ProofData<F, C, D> {
+        &self.proof_data
+    }
+
+    fn verifier_data(&self) -> HashOut<F> {
+        self.proof().circuit_data.verifier_only.circuit_digest
     }
 }
