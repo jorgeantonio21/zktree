@@ -8,8 +8,7 @@ use plonky2::{
 use std::marker::PhantomData;
 
 use crate::{
-    circuit_compiler::CircuitCompiler, node_circuit::NodeCircuit, proof_data::ProofData,
-    provable::Provable, tree_proof::Proof,
+    node_circuit::NodeCircuit, proof_data::ProofData, provable::Provable, tree_proof::Proof,
 };
 
 pub struct NodeProof<C, F, H, const D: usize>
@@ -30,10 +29,7 @@ where
     F: RichField + Extendable<D>,
     C: GenericConfig<D, F = F, Hasher = H>,
 {
-    pub fn new_from_node_proofs<P: Proof<C, F, D>>(
-        node_proof_1: P,
-        node_proof_2: P,
-    ) -> Result<Self, Error> {
+    pub fn new<P: Proof<C, F, D>>(node_proof_1: P, node_proof_2: P) -> Result<Self, Error> {
         let node_input_hash_1 = node_proof_1.input_hash();
         let node_input_hash_2 = node_proof_2.input_hash();
         let input_hash =
@@ -52,7 +48,7 @@ where
             .verifier_only
             .circuit_digest;
 
-        if node_verifier_data_hash_1 != node_circuit_hash_2 {
+        if node_verifier_data_hash_1 != node_verifier_data_hash_2 {
             return Err(anyhow!(
                 "Invalid circuit verifier data for node 1 and node 2"
             ));
@@ -68,14 +64,14 @@ where
         );
 
         let node_circuit = NodeCircuit::new(node_proof_1, node_proof_2);
-        let proof_data = node_circuit.proof();
-        todo!()
+        let proof_data = node_circuit.proof()?;
 
-        // Ok(Self {
-        //     input_hash,
-        //     circuit_hash,
-        //     proof_data,
-        // })
+        Ok(Self {
+            input_hash,
+            circuit_hash,
+            proof_data,
+            phantom_data: PhantomData,
+        })
     }
 }
 

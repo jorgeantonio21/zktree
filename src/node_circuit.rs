@@ -3,11 +3,15 @@ use std::marker::PhantomData;
 use anyhow::Error;
 use plonky2::{
     field::extension::Extendable,
-    hash::hash_types::{HashOut, HashOutTarget, RichField},
+    hash::{
+        hash_types::{HashOut, HashOutTarget, RichField},
+        poseidon::PoseidonHash,
+    },
     iop::witness::{PartialWitness, WitnessWrite},
     plonk::{
         circuit_builder::CircuitBuilder,
-        config::{AlgebraicHasher, GenericConfig, PoseidonGoldilocksConfig},
+        circuit_data::CircuitConfig,
+        config::{AlgebraicHasher, GenericConfig, Hasher},
     },
 };
 
@@ -187,7 +191,28 @@ where
     }
 
     fn evaluate(&self) -> Self::Value {
-        todo!()
+        let left_child_circuit_hash = self.left_child.input_hash();
+        let right_child_circuit_hash = self.right_child.input_hash();
+
+        let left_child_input_hash = self.left_child.input_hash();
+        let right_child_input_hash = self.right_child.input_hash();
+
+        let node_circuit_hash = PoseidonHash::hash_no_pad(
+            &[
+                left_child_circuit_hash.elements,
+                right_child_circuit_hash.elements,
+            ]
+            .concat(),
+        );
+        let node_input_hash = PoseidonHash::hash_no_pad(
+            &[
+                left_child_input_hash.elements,
+                right_child_input_hash.elements,
+            ]
+            .concat(),
+        );
+
+        (node_circuit_hash, node_input_hash)
     }
 
     fn fill(
@@ -204,17 +229,48 @@ where
             left_child_circuit_hash_targets,
             self.left_child.circuit_hash(),
         );
-        todo!()
+        partial_witness
+            .set_hash_target(left_child_input_hash_targets, self.left_child.input_hash());
+
+        partial_witness.set_hash_target(
+            right_child_circuit_hash_targets,
+            self.right_child.circuit_hash(),
+        );
+        partial_witness.set_hash_target(
+            right_child_input_hash_targets,
+            self.right_child.input_hash(),
+        );
+
+        let (node_circuit_hash, node_input_hash) = self.evaluate();
+
+        partial_witness.set_hash_target(node_circuit_hash_targets, node_circuit_hash);
+        partial_witness.set_hash_target(node_input_hash_targets, node_input_hash);
+
+        Ok(())
     }
 }
 
 impl<C, F, P, const D: usize> Provable<F, C, D> for NodeCircuit<C, F, P, D>
 where
     C: GenericConfig<D, F = F>,
+    C::Hasher: AlgebraicHasher<F>,
     F: RichField + Extendable<D>,
     P: Proof<C, F, D>,
 {
     fn proof(self) -> Result<ProofData<F, C, D>, Error> {
-        todo!()
+        let mut circuit_builder =
+            CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
+        let mut partial_witness = PartialWitness::<F>::new();
+
+        let (targets, out_targets) = self.compile(&mut circuit_builder);
+        self.fill(&mut partial_witness, targets, out_targets)?;
+
+        let circuit_data = circuit_builder.build::<C>();
+        let proof_with_pis = circuit_data.prove(partial_witness)?;
+
+        Ok(ProofData {
+            proof_with_pis,
+            circuit_data,
+        })
     }
 }

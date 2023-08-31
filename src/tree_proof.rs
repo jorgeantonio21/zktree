@@ -1,7 +1,7 @@
 use plonky2::{
     field::extension::Extendable,
     hash::hash_types::{HashOut, RichField},
-    plonk::config::{AlgebraicHasher, GenericConfig},
+    plonk::config::GenericConfig,
 };
 
 use crate::proof_data::ProofData;
