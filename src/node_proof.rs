@@ -54,10 +54,11 @@ where
             ));
         }
 
+        // TODO: this is duplicate code, should be removed
         let circuit_hash = H::hash_no_pad(
             &[
                 left_node_circuit_hash.elements,
-                left_node_verifier_data_hash.elements,
+                // left_node_verifier_data_hash.elements,
                 right_node_circuit_hash.elements,
             ]
             .concat(),
@@ -110,8 +111,6 @@ mod tests {
             config::{Hasher, PoseidonGoldilocksConfig},
         },
     };
-
-    use crate::node_circuit;
 
     use super::*;
 

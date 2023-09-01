@@ -126,7 +126,7 @@ where
             .hash_n_to_hash_no_pad::<<C as GenericConfig<D>>::Hasher>(
                 [
                     left_child_circuit_hash_targets.elements,
-                    left_verifier_data_targets.circuit_digest.elements,
+                    // left_verifier_data_targets.circuit_digest.elements,
                     right_child_circuit_hash_targets.elements,
                 ]
                 .concat(),
@@ -152,11 +152,7 @@ where
             )
         });
 
-        println!(
-            "FLAG: WOWOWOWOW {:?}",
-            left_proof_with_pis_targets.public_inputs
-        );
-
+        // TODO: replace these values with hardcoded constants
         (4..8).for_each(|i| {
             circuit_builder.connect(
                 left_proof_with_pis_targets.public_inputs[i],
@@ -196,8 +192,8 @@ where
     }
 
     fn evaluate(&self) -> Self::Value {
-        let left_child_circuit_hash = self.left_child.input_hash();
-        let right_child_circuit_hash = self.right_child.input_hash();
+        let left_child_circuit_hash = self.left_child.circuit_hash();
+        let right_child_circuit_hash = self.right_child.circuit_hash();
 
         let left_child_input_hash = self.left_child.input_hash();
         let right_child_input_hash = self.right_child.input_hash();
@@ -205,6 +201,12 @@ where
         let node_circuit_hash = PoseidonHash::hash_no_pad(
             &[
                 left_child_circuit_hash.elements,
+                // self.left_child
+                //     .proof()
+                //     .circuit_data
+                //     .verifier_only
+                //     .circuit_digest
+                //     .elements,
                 right_child_circuit_hash.elements,
             ]
             .concat(),
