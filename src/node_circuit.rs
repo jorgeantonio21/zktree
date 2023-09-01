@@ -152,10 +152,15 @@ where
             )
         });
 
+        println!(
+            "FLAG: WOWOWOWOW {:?}",
+            left_proof_with_pis_targets.public_inputs
+        );
+
         (4..8).for_each(|i| {
             circuit_builder.connect(
                 left_proof_with_pis_targets.public_inputs[i],
-                left_child_circuit_hash_targets.elements[i],
+                left_child_circuit_hash_targets.elements[i - 4],
             )
         });
 
@@ -173,7 +178,7 @@ where
         (4..8).for_each(|i| {
             circuit_builder.connect(
                 right_proof_with_pis_targets.public_inputs[i],
-                right_child_circuit_hash_targets.elements[i],
+                right_child_circuit_hash_targets.elements[i - 4],
             )
         });
 
