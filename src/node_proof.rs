@@ -29,11 +29,32 @@ where
     F: RichField + Extendable<D>,
     C: GenericConfig<D, F = F, Hasher = H>,
 {
-    pub fn new<P: Proof<C, F, D>>(left_node_proof: P, right_node_proof: P) -> Result<Self, Error> {
-        let node_input_hash_1 = left_node_proof.input_hash();
-        let node_input_hash_2 = right_node_proof.input_hash();
-        let input_hash =
-            H::hash_no_pad(&[node_input_hash_1.elements, node_input_hash_2.elements].concat());
+    pub fn new(
+        proof_data: ProofData<F, C, D>,
+        input_hash: HashOut<F>,
+        circuit_hash: HashOut<F>,
+    ) -> Self {
+        Self {
+            proof_data,
+            input_hash,
+            circuit_hash,
+            phantom_data: PhantomData,
+        }
+    }
+
+    pub fn new_from_children<P: Proof<C, F, D>>(
+        left_node_proof: P,
+        right_node_proof: P,
+    ) -> Result<Self, Error> {
+        let left_node_input_hash = left_node_proof.input_hash();
+        let right_node_input_hash = right_node_proof.input_hash();
+        let input_hash = H::hash_no_pad(
+            &[
+                left_node_input_hash.elements,
+                right_node_input_hash.elements,
+            ]
+            .concat(),
+        );
 
         let left_node_circuit_hash = left_node_proof.circuit_hash();
         let right_node_circuit_hash = right_node_proof.circuit_hash();
@@ -58,7 +79,7 @@ where
         let circuit_hash = H::hash_no_pad(
             &[
                 left_node_circuit_hash.elements,
-                // left_node_verifier_data_hash.elements,
+                left_node_verifier_data_hash.elements,
                 right_node_circuit_hash.elements,
             ]
             .concat(),
@@ -164,23 +185,23 @@ mod tests {
         let left_proof_data = simple_circuit_proof_data();
 
         let input_hash = PoseidonHash::hash_no_pad(&[F::ZERO, F::ZERO, F::ZERO, F::ZERO]);
-        let circuit_hash = PoseidonHash::hash_no_pad(&[F::ONE, F::ONE, F::ONE, F::ONE]);
-
+        let left_circuit_hash = left_proof_data.circuit_data.verifier_only.circuit_digest;
         let left_node_proof = NodeProof {
             proof_data: left_proof_data,
             input_hash,
-            circuit_hash,
+            circuit_hash: left_circuit_hash,
             phantom_data: PhantomData,
         };
 
-        let right_node_proof = simple_circuit_proof_data();
+        let right_proof_data = simple_circuit_proof_data();
+        let right_circuit_hash = right_proof_data.circuit_data.verifier_only.circuit_digest;
         let right_node_proof = NodeProof {
-            proof_data: right_node_proof,
+            proof_data: right_proof_data,
             input_hash,
-            circuit_hash,
+            circuit_hash: right_circuit_hash,
             phantom_data: PhantomData,
         };
 
-        assert!(NodeProof::new(left_node_proof, right_node_proof).is_ok());
+        assert!(NodeProof::new_from_children(left_node_proof, right_node_proof).is_ok());
     }
 }

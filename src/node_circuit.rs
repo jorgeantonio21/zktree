@@ -10,8 +10,9 @@ use plonky2::{
     iop::witness::{PartialWitness, WitnessWrite},
     plonk::{
         circuit_builder::CircuitBuilder,
-        circuit_data::CircuitConfig,
+        circuit_data::{CircuitConfig, VerifierCircuitTarget},
         config::{AlgebraicHasher, GenericConfig, Hasher},
+        proof::ProofWithPublicInputsTarget,
     },
 };
 
@@ -53,7 +54,11 @@ where
     P: Proof<C, F, D>,
 {
     type Value = (HashOut<F>, HashOut<F>);
-    type Targets = [HashOutTarget; 4];
+    type Targets = (
+        [ProofWithPublicInputsTarget<D>; 2],
+        [VerifierCircuitTarget; 2],
+        [HashOutTarget; 4],
+    ); // [HashOutTarget; 4];
     type OutTargets = (HashOutTarget, HashOutTarget);
 
     fn compile(
@@ -93,6 +98,12 @@ where
                 .cap_height,
         );
 
+        circuit_builder.verify_proof::<C>(
+            &right_proof_with_pis_targets,
+            &right_verifier_data_targets,
+            &self.right_child.proof().circuit_data.common,
+        );
+
         // input hash digest verifications
         let left_child_input_hash_targets = circuit_builder.add_virtual_hash();
         let right_child_input_hash_targets = circuit_builder.add_virtual_hash();
@@ -111,8 +122,9 @@ where
 
         circuit_builder.connect_hashes(node_input_hash_targets, should_be_node_input_hash_targets);
 
-        let [left_child_circuit_hash_targets, right_child_circuit_hash_targets, node_circuit_hash_targets] =
-            [circuit_builder.add_virtual_hash(); 3];
+        let left_child_circuit_hash_targets = circuit_builder.add_virtual_hash();
+        let right_child_circuit_hash_targets = circuit_builder.add_virtual_hash();
+        let node_circuit_hash_targets = circuit_builder.add_virtual_hash();
 
         circuit_builder.register_public_inputs(&node_circuit_hash_targets.elements);
 
@@ -126,7 +138,7 @@ where
             .hash_n_to_hash_no_pad::<<C as GenericConfig<D>>::Hasher>(
                 [
                     left_child_circuit_hash_targets.elements,
-                    // left_verifier_data_targets.circuit_digest.elements,
+                    left_verifier_data_targets.circuit_digest.elements,
                     right_child_circuit_hash_targets.elements,
                 ]
                 .concat(),
@@ -145,49 +157,52 @@ where
             circuit_builder.connect(true_bool_target.target, false_bool_target.target);
         }
 
-        (0..4).for_each(|i| {
-            circuit_builder.connect(
-                left_proof_with_pis_targets.public_inputs[i],
-                left_child_input_hash_targets.elements[i],
-            )
-        });
+        // (0..4).for_each(|i| {
+        //     circuit_builder.connect(
+        //         left_proof_with_pis_targets.public_inputs[i],
+        //         left_child_input_hash_targets.elements[i],
+        //     )
+        // });
 
-        // TODO: replace these values with hardcoded constants
-        (4..8).for_each(|i| {
-            circuit_builder.connect(
-                left_proof_with_pis_targets.public_inputs[i],
-                left_child_circuit_hash_targets.elements[i - 4],
-            )
-        });
+        // // TODO: replace these values with hardcoded constants
+        // (4..8).for_each(|i| {
+        //     circuit_builder.connect(
+        //         left_proof_with_pis_targets.public_inputs[i],
+        //         left_child_circuit_hash_targets.elements[i - 4],
+        //     )
+        // });
 
-        if right_proof_with_pis_targets.public_inputs.len() != 8 {
-            circuit_builder.connect(true_bool_target.target, false_bool_target.target);
-        }
+        // if right_proof_with_pis_targets.public_inputs.len() != 8 {
+        //     circuit_builder.connect(true_bool_target.target, false_bool_target.target);
+        // }
 
-        (0..4).for_each(|i| {
-            circuit_builder.connect(
-                right_proof_with_pis_targets.public_inputs[i],
-                right_child_input_hash_targets.elements[i],
-            )
-        });
+        // (0..4).for_each(|i| {
+        //     circuit_builder.connect(
+        //         right_proof_with_pis_targets.public_inputs[i],
+        //         right_child_input_hash_targets.elements[i],
+        //     )
+        // });
 
-        (4..8).for_each(|i| {
-            circuit_builder.connect(
-                right_proof_with_pis_targets.public_inputs[i],
-                right_child_circuit_hash_targets.elements[i - 4],
-            )
-        });
+        // (4..8).for_each(|i| {
+        //     circuit_builder.connect(
+        //         right_proof_with_pis_targets.public_inputs[i],
+        //         right_child_circuit_hash_targets.elements[i - 4],
+        //     )
+        // });
 
         // TODO: Need to add a check that the circuit digest agrees with the left and right childs
-
         (
-            [
-                left_child_input_hash_targets,
-                right_child_input_hash_targets,
-                left_child_circuit_hash_targets,
-                right_child_circuit_hash_targets,
-            ],
-            (node_input_hash_targets, node_circuit_hash_targets),
+            (
+                [left_proof_with_pis_targets, right_proof_with_pis_targets],
+                [left_verifier_data_targets, right_verifier_data_targets],
+                [
+                    left_child_input_hash_targets,
+                    right_child_input_hash_targets,
+                    left_child_circuit_hash_targets,
+                    right_child_circuit_hash_targets,
+                ],
+            ),
+            (node_circuit_hash_targets, node_input_hash_targets),
         )
     }
 
@@ -201,16 +216,17 @@ where
         let node_circuit_hash = PoseidonHash::hash_no_pad(
             &[
                 left_child_circuit_hash.elements,
-                // self.left_child
-                //     .proof()
-                //     .circuit_data
-                //     .verifier_only
-                //     .circuit_digest
-                //     .elements,
+                self.left_child
+                    .proof()
+                    .circuit_data
+                    .verifier_only
+                    .circuit_digest
+                    .elements,
                 right_child_circuit_hash.elements,
             ]
             .concat(),
         );
+
         let node_input_hash = PoseidonHash::hash_no_pad(
             &[
                 left_child_input_hash.elements,
@@ -228,21 +244,53 @@ where
         targets: Self::Targets,
         out_targets: Self::OutTargets,
     ) -> Result<(), anyhow::Error> {
-        let [left_child_input_hash_targets, right_child_input_hash_targets, left_child_circuit_hash_targets, right_child_circuit_hash_targets] =
-            targets;
-        let (node_input_hash_targets, node_circuit_hash_targets) = out_targets;
+        let (
+            [left_proof_with_pis_targets, right_proof_with_pis_targets],
+            [left_verifier_data_targets, right_verifier_data_targets],
+            [left_child_input_hash_targets, right_child_input_hash_targets, left_child_circuit_hash_targets, right_child_circuit_hash_targets],
+        ) = targets;
+
+        let (node_circuit_hash_targets, node_input_hash_targets) = out_targets;
+
+        partial_witness.set_proof_with_pis_target(
+            &left_proof_with_pis_targets,
+            &self.left_child.proof().proof_with_pis,
+        );
+        partial_witness.set_proof_with_pis_target(
+            &right_proof_with_pis_targets,
+            &self.right_child.proof().proof_with_pis,
+        );
+
+        partial_witness.set_verifier_data_target(
+            &left_verifier_data_targets,
+            &self
+                .left_child
+                .proof()
+                .circuit_data
+                .verifier_data()
+                .verifier_only,
+        );
+        partial_witness.set_verifier_data_target(
+            &right_verifier_data_targets,
+            &self
+                .right_child
+                .proof()
+                .circuit_data
+                .verifier_data()
+                .verifier_only,
+        );
 
         partial_witness.set_hash_target(
             left_child_circuit_hash_targets,
             self.left_child.circuit_hash(),
         );
-        partial_witness
-            .set_hash_target(left_child_input_hash_targets, self.left_child.input_hash());
-
         partial_witness.set_hash_target(
             right_child_circuit_hash_targets,
             self.right_child.circuit_hash(),
         );
+
+        partial_witness
+            .set_hash_target(left_child_input_hash_targets, self.left_child.input_hash());
         partial_witness.set_hash_target(
             right_child_input_hash_targets,
             self.right_child.input_hash(),
