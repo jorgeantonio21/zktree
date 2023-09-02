@@ -11,7 +11,7 @@ use plonky2::{
     plonk::{
         circuit_builder::CircuitBuilder,
         circuit_data::{CircuitConfig, VerifierCircuitTarget},
-        config::{AlgebraicHasher, GenericConfig, GenericHashOut, Hasher},
+        config::{AlgebraicHasher, GenericConfig, Hasher},
         proof::ProofWithPublicInputsTarget,
     },
 };
@@ -168,12 +168,12 @@ where
             left_proof_with_pis_targets.public_inputs
         );
 
-        // (0..4).for_each(|i| {
-        //     circuit_builder.connect(
-        //         left_proof_with_pis_targets.public_inputs[i],
-        //         left_child_input_hash_targets.elements[i],
-        //     )
-        // });
+        (0..4).for_each(|i| {
+            circuit_builder.connect(
+                left_proof_with_pis_targets.public_inputs[i],
+                left_child_input_hash_targets.elements[i],
+            )
+        });
 
         // TODO: replace these values with hardcoded constants
         // (4..8).for_each(|i| {

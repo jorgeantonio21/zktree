@@ -1,9 +1,7 @@
 use anyhow::Error;
 use plonky2::{
-    field::extension::Extendable,
-    hash::hash_types::RichField,
-    iop::witness::PartialWitness,
-    plonk::{circuit_builder::CircuitBuilder, config::AlgebraicHasher},
+    field::extension::Extendable, hash::hash_types::RichField, iop::witness::PartialWitness,
+    plonk::circuit_builder::CircuitBuilder,
 };
 
 pub trait CircuitCompiler<F: RichField + Extendable<D>, const D: usize> {

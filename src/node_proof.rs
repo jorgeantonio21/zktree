@@ -142,10 +142,10 @@ mod tests {
 
     const D: usize = 2;
     const VERIFIER_CIRCUIT_DIGEST: [usize; 4] = [
-        9969890230857610032,
-        1722781951972625693,
-        6976409809132174770,
-        15142058496699060700,
+        9655690328080666940,
+        3467578314769302625,
+        1856731120987587081,
+        4882619829583239639,
     ];
     type F = GoldilocksField;
 
@@ -224,7 +224,7 @@ mod tests {
             phantom_data: PhantomData,
         };
 
-        let verifier_circuit_digest = VERIFIER_CIRCUIT_DIGEST.map(|i| F::from_canonical_usize(4));
+        let verifier_circuit_digest = VERIFIER_CIRCUIT_DIGEST.map(|x| F::from_canonical_usize(x));
         let node_proof = NodeProof::new_from_children(
             left_node_proof,
             right_node_proof,
