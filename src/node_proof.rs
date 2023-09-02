@@ -142,10 +142,10 @@ mod tests {
 
     const D: usize = 2;
     const VERIFIER_CIRCUIT_DIGEST: [usize; 4] = [
-        9655690328080666940,
-        3467578314769302625,
-        1856731120987587081,
-        4882619829583239639,
+        1314699955453883907,
+        5115682082778291851,
+        17323654947868293245,
+        1745693925650695173,
     ];
     type F = GoldilocksField;
 
@@ -231,22 +231,13 @@ mod tests {
         };
 
         let verifier_circuit_digest = VERIFIER_CIRCUIT_DIGEST.map(|x| F::from_canonical_usize(x));
-        let node_proof = NodeProof::new_from_children(
+        assert!(NodeProof::new_from_children(
             left_node_proof,
             right_node_proof,
             HashOut {
                 elements: verifier_circuit_digest,
             },
         )
-        .expect("Failed to generate node proof");
-
-        println!(
-            "FLAG: DEBUG circuit_hash = {:?}",
-            node_proof
-                .proof_data
-                .circuit_data
-                .verifier_only
-                .circuit_digest
-        );
+        .is_ok());
     }
 }
