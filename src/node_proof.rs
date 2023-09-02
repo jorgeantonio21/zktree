@@ -45,6 +45,7 @@ where
     pub fn new_from_children<P: Proof<C, F, D>>(
         left_node_proof: P,
         right_node_proof: P,
+        verifier_circuit_digest: H::Hash,
     ) -> Result<Self, Error> {
         let left_node_input_hash = left_node_proof.input_hash();
         let right_node_input_hash = right_node_proof.input_hash();
@@ -79,13 +80,14 @@ where
         let circuit_hash = H::hash_no_pad(
             &[
                 left_node_circuit_hash.elements,
-                left_node_verifier_data_hash.elements,
+                verifier_circuit_digest.elements,
                 right_node_circuit_hash.elements,
             ]
             .concat(),
         );
 
-        let node_circuit = NodeCircuit::new(left_node_proof, right_node_proof);
+        let node_circuit =
+            NodeCircuit::new(left_node_proof, right_node_proof, verifier_circuit_digest);
         let proof_data = node_circuit.proof()?;
 
         Ok(Self {
@@ -123,7 +125,10 @@ where
 #[cfg(test)]
 mod tests {
     use plonky2::{
-        field::{goldilocks_field::GoldilocksField, types::Field},
+        field::{
+            goldilocks_field::GoldilocksField,
+            types::{Field, Sample},
+        },
         hash::poseidon::PoseidonHash,
         iop::witness::{PartialWitness, WitnessWrite},
         plonk::{
@@ -136,14 +141,31 @@ mod tests {
     use super::*;
 
     const D: usize = 2;
+    const VERIFIER_CIRCUIT_DIGEST: [usize; 4] = [
+        9969890230857610032,
+        1722781951972625693,
+        6976409809132174770,
+        15142058496699060700,
+    ];
     type F = GoldilocksField;
 
-    fn simple_circuit_proof_data() -> ProofData<F, PoseidonGoldilocksConfig, D> {
-        let input_original_data = [F::ONE, F::ZERO, F::ONE, F::ZERO];
+    fn hash_data() -> ([F; 4], HashOut<F>, [F; 4], HashOut<F>) {
+        let input_original_data = F::rand_array();
         let input_hash = PoseidonHash::hash_no_pad(&input_original_data);
 
-        let circuit_original_data = [F::ZERO, F::ONE, F::ZERO, F::ONE];
+        let circuit_original_data = F::rand_array();
         let circuit_hash = PoseidonHash::hash_no_pad(&circuit_original_data);
+
+        (
+            input_original_data,
+            input_hash,
+            circuit_original_data,
+            circuit_hash,
+        )
+    }
+
+    fn simple_circuit_proof_data() -> ProofData<F, PoseidonGoldilocksConfig, D> {
+        let (input_original_data, input_hash, circuit_original_data, circuit_hash) = hash_data();
 
         let mut circuit_builder =
             CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
@@ -182,9 +204,9 @@ mod tests {
 
     #[test]
     fn test_node_proof() {
-        let left_proof_data = simple_circuit_proof_data();
+        let (_, input_hash, _, _) = hash_data();
 
-        let input_hash = PoseidonHash::hash_no_pad(&[F::ZERO, F::ZERO, F::ZERO, F::ZERO]);
+        let left_proof_data = simple_circuit_proof_data();
         let left_circuit_hash = left_proof_data.circuit_data.verifier_only.circuit_digest;
         let left_node_proof = NodeProof {
             proof_data: left_proof_data,
@@ -202,6 +224,23 @@ mod tests {
             phantom_data: PhantomData,
         };
 
-        assert!(NodeProof::new_from_children(left_node_proof, right_node_proof).is_ok());
+        let verifier_circuit_digest = VERIFIER_CIRCUIT_DIGEST.map(|i| F::from_canonical_usize(4));
+        let node_proof = NodeProof::new_from_children(
+            left_node_proof,
+            right_node_proof,
+            HashOut {
+                elements: verifier_circuit_digest,
+            },
+        )
+        .expect("Failed to generate node proof");
+
+        println!(
+            "FLAG: DEBUG circuit_hash = {:?}",
+            node_proof
+                .proof_data
+                .circuit_data
+                .verifier_only
+                .circuit_digest
+        );
     }
 }

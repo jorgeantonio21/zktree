@@ -11,7 +11,7 @@ use plonky2::{
     plonk::{
         circuit_builder::CircuitBuilder,
         circuit_data::{CircuitConfig, VerifierCircuitTarget},
-        config::{AlgebraicHasher, GenericConfig, Hasher},
+        config::{AlgebraicHasher, GenericConfig, GenericHashOut, Hasher},
         proof::ProofWithPublicInputsTarget,
     },
 };
@@ -20,44 +20,48 @@ use crate::{
     circuit_compiler::CircuitCompiler, proof_data::ProofData, provable::Provable, tree_proof::Proof,
 };
 
-pub struct NodeCircuit<C, F, P, const D: usize>
+pub struct NodeCircuit<C, F, H, P, const D: usize>
 where
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
+    H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
     left_child: P,
     right_child: P,
+    verifier_circuit_digest: H::Hash,
     phantom_data: PhantomData<(C, F)>,
 }
 
-impl<C, F, P, const D: usize> NodeCircuit<C, F, P, D>
+impl<C, F, H, P, const D: usize> NodeCircuit<C, F, H, P, D>
 where
-    C: GenericConfig<D, F = F>,
+    C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
+    H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
-    pub fn new(left_child: P, right_child: P) -> Self {
+    pub fn new(left_child: P, right_child: P, verifier_circuit_digest: H::Hash) -> Self {
         Self {
             left_child,
             right_child,
+            verifier_circuit_digest,
             phantom_data: PhantomData,
         }
     }
 }
 
-impl<C, F, P, const D: usize> CircuitCompiler<F, D> for NodeCircuit<C, F, P, D>
+impl<C, F, H, P, const D: usize> CircuitCompiler<F, D> for NodeCircuit<C, F, H, P, D>
 where
-    C: GenericConfig<D, F = F>,
-    C::Hasher: AlgebraicHasher<F>,
+    C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
+    H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
     type Value = (HashOut<F>, HashOut<F>);
     type Targets = (
         [ProofWithPublicInputsTarget<D>; 2],
         [VerifierCircuitTarget; 2],
-        [HashOutTarget; 4],
+        [HashOutTarget; 5],
     ); // [HashOutTarget; 4];
     type OutTargets = (HashOutTarget, HashOutTarget);
 
@@ -134,11 +138,13 @@ where
             right_verifier_data_targets.circuit_digest,
         );
 
+        let verifier_circuit_data_targets = circuit_builder.add_virtual_hash();
+
         let should_be_node_circuit_hash_targets = circuit_builder
             .hash_n_to_hash_no_pad::<<C as GenericConfig<D>>::Hasher>(
                 [
                     left_child_circuit_hash_targets.elements,
-                    left_verifier_data_targets.circuit_digest.elements,
+                    verifier_circuit_data_targets.elements,
                     right_child_circuit_hash_targets.elements,
                 ]
                 .concat(),
@@ -157,6 +163,11 @@ where
             circuit_builder.connect(true_bool_target.target, false_bool_target.target);
         }
 
+        println!(
+            "FLAG: DEBUG {:?}",
+            left_proof_with_pis_targets.public_inputs
+        );
+
         // (0..4).for_each(|i| {
         //     circuit_builder.connect(
         //         left_proof_with_pis_targets.public_inputs[i],
@@ -164,7 +175,7 @@ where
         //     )
         // });
 
-        // // TODO: replace these values with hardcoded constants
+        // TODO: replace these values with hardcoded constants
         // (4..8).for_each(|i| {
         //     circuit_builder.connect(
         //         left_proof_with_pis_targets.public_inputs[i],
@@ -200,6 +211,7 @@ where
                     right_child_input_hash_targets,
                     left_child_circuit_hash_targets,
                     right_child_circuit_hash_targets,
+                    verifier_circuit_data_targets,
                 ],
             ),
             (node_circuit_hash_targets, node_input_hash_targets),
@@ -216,12 +228,7 @@ where
         let node_circuit_hash = PoseidonHash::hash_no_pad(
             &[
                 left_child_circuit_hash.elements,
-                self.left_child
-                    .proof()
-                    .circuit_data
-                    .verifier_only
-                    .circuit_digest
-                    .elements,
+                self.verifier_circuit_digest.elements,
                 right_child_circuit_hash.elements,
             ]
             .concat(),
@@ -247,7 +254,7 @@ where
         let (
             [left_proof_with_pis_targets, right_proof_with_pis_targets],
             [left_verifier_data_targets, right_verifier_data_targets],
-            [left_child_input_hash_targets, right_child_input_hash_targets, left_child_circuit_hash_targets, right_child_circuit_hash_targets],
+            [left_child_input_hash_targets, right_child_input_hash_targets, left_child_circuit_hash_targets, right_child_circuit_hash_targets, verifier_circuit_data_targets],
         ) = targets;
 
         let (node_circuit_hash_targets, node_input_hash_targets) = out_targets;
@@ -296,6 +303,9 @@ where
             self.right_child.input_hash(),
         );
 
+        partial_witness
+            .set_hash_target(verifier_circuit_data_targets, self.verifier_circuit_digest);
+
         let (node_circuit_hash, node_input_hash) = self.evaluate();
 
         partial_witness.set_hash_target(node_circuit_hash_targets, node_circuit_hash);
@@ -305,11 +315,11 @@ where
     }
 }
 
-impl<C, F, P, const D: usize> Provable<F, C, D> for NodeCircuit<C, F, P, D>
+impl<C, F, H, P, const D: usize> Provable<F, C, D> for NodeCircuit<C, F, H, P, D>
 where
-    C: GenericConfig<D, F = F>,
-    C::Hasher: AlgebraicHasher<F>,
+    C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
+    H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
     fn proof(self) -> Result<ProofData<F, C, D>, Error> {
