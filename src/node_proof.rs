@@ -164,7 +164,11 @@ mod tests {
         )
     }
 
-    fn simple_circuit_proof_data() -> ProofData<F, PoseidonGoldilocksConfig, D> {
+    fn simple_circuit_proof_data() -> (
+        HashOut<F>,
+        HashOut<F>,
+        ProofData<F, PoseidonGoldilocksConfig, D>,
+    ) {
         let (input_original_data, input_hash, circuit_original_data, circuit_hash) = hash_data();
 
         let mut circuit_builder =
@@ -196,31 +200,33 @@ mod tests {
             .prove(partial_witness)
             .expect("Failed to prove simple circuit");
 
-        ProofData {
-            proof_with_pis,
-            circuit_data,
-        }
+        (
+            input_hash,
+            circuit_hash,
+            ProofData {
+                proof_with_pis,
+                circuit_data,
+            },
+        )
     }
 
     #[test]
     fn test_node_proof() {
-        let (_, input_hash, _, _) = hash_data();
-
-        let left_proof_data = simple_circuit_proof_data();
-        let left_circuit_hash = left_proof_data.circuit_data.verifier_only.circuit_digest;
+        let (input_hash, circuit_hash, left_proof_data) = simple_circuit_proof_data();
+        // let left_circuit_hash= left_proof_data.circuit_data.verifier_only.circuit_digest;
         let left_node_proof = NodeProof {
             proof_data: left_proof_data,
             input_hash,
-            circuit_hash: left_circuit_hash,
+            circuit_hash,
             phantom_data: PhantomData,
         };
 
-        let right_proof_data = simple_circuit_proof_data();
-        let right_circuit_hash = right_proof_data.circuit_data.verifier_only.circuit_digest;
+        let (input_hash, circuit_hash, right_proof_data) = simple_circuit_proof_data();
+        // let right_circuit_hash = right_proof_data.circuit_data.verifier_only.circuit_digest;
         let right_node_proof = NodeProof {
             proof_data: right_proof_data,
             input_hash,
-            circuit_hash: right_circuit_hash,
+            circuit_hash,
             phantom_data: PhantomData,
         };
 

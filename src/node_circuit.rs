@@ -163,11 +163,6 @@ where
             circuit_builder.connect(true_bool_target.target, false_bool_target.target);
         }
 
-        println!(
-            "FLAG: DEBUG {:?}",
-            left_proof_with_pis_targets.public_inputs
-        );
-
         (0..4).for_each(|i| {
             circuit_builder.connect(
                 left_proof_with_pis_targets.public_inputs[i],
@@ -176,30 +171,30 @@ where
         });
 
         // TODO: replace these values with hardcoded constants
-        // (4..8).for_each(|i| {
-        //     circuit_builder.connect(
-        //         left_proof_with_pis_targets.public_inputs[i],
-        //         left_child_circuit_hash_targets.elements[i - 4],
-        //     )
-        // });
+        (4..8).for_each(|i| {
+            circuit_builder.connect(
+                left_proof_with_pis_targets.public_inputs[i],
+                left_child_circuit_hash_targets.elements[i - 4],
+            )
+        });
 
-        // if right_proof_with_pis_targets.public_inputs.len() != 8 {
-        //     circuit_builder.connect(true_bool_target.target, false_bool_target.target);
-        // }
+        if right_proof_with_pis_targets.public_inputs.len() != 8 {
+            circuit_builder.connect(true_bool_target.target, false_bool_target.target);
+        }
 
-        // (0..4).for_each(|i| {
-        //     circuit_builder.connect(
-        //         right_proof_with_pis_targets.public_inputs[i],
-        //         right_child_input_hash_targets.elements[i],
-        //     )
-        // });
+        (0..4).for_each(|i| {
+            circuit_builder.connect(
+                right_proof_with_pis_targets.public_inputs[i],
+                right_child_input_hash_targets.elements[i],
+            )
+        });
 
-        // (4..8).for_each(|i| {
-        //     circuit_builder.connect(
-        //         right_proof_with_pis_targets.public_inputs[i],
-        //         right_child_circuit_hash_targets.elements[i - 4],
-        //     )
-        // });
+        (4..8).for_each(|i| {
+            circuit_builder.connect(
+                right_proof_with_pis_targets.public_inputs[i],
+                right_child_circuit_hash_targets.elements[i - 4],
+            )
+        });
 
         // TODO: Need to add a check that the circuit digest agrees with the left and right childs
         (
