@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use plonky2::{
     field::extension::Extendable,
     hash::{
@@ -326,6 +326,10 @@ where
         self.fill(&mut partial_witness, targets, out_targets)?;
 
         let circuit_data = circuit_builder.build::<C>();
+
+        if circuit_data.verifier_only.circuit_digest != self.verifier_circuit_digest {
+            return Err(anyhow!("Verifier circuit digest is not valid !"));
+        }
         let proof_with_pis = circuit_data.prove(partial_witness)?;
 
         Ok(ProofData {
