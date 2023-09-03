@@ -116,7 +116,7 @@ where
         circuit_builder.register_public_inputs(&node_input_hash_targets.elements);
 
         let should_be_node_input_hash_targets = circuit_builder
-            .hash_n_to_hash_no_pad::<<C as GenericConfig<D>>::Hasher>(
+            .hash_or_noop::<<C as GenericConfig<D>>::Hasher>(
                 [
                     left_child_input_hash_targets.elements,
                     right_child_input_hash_targets.elements,
@@ -141,7 +141,7 @@ where
         let verifier_circuit_data_targets = circuit_builder.add_virtual_hash();
 
         let should_be_node_circuit_hash_targets = circuit_builder
-            .hash_n_to_hash_no_pad::<<C as GenericConfig<D>>::Hasher>(
+            .hash_or_noop::<<C as GenericConfig<D>>::Hasher>(
                 [
                     left_child_circuit_hash_targets.elements,
                     verifier_circuit_data_targets.elements,
@@ -220,7 +220,7 @@ where
         let left_child_input_hash = self.left_child.input_hash();
         let right_child_input_hash = self.right_child.input_hash();
 
-        let node_circuit_hash = PoseidonHash::hash_no_pad(
+        let node_circuit_hash = PoseidonHash::hash_or_noop(
             &[
                 left_child_circuit_hash.elements,
                 self.verifier_circuit_digest.elements,
@@ -229,7 +229,7 @@ where
             .concat(),
         );
 
-        let node_input_hash = PoseidonHash::hash_no_pad(
+        let node_input_hash = PoseidonHash::hash_or_noop(
             &[
                 left_child_input_hash.elements,
                 right_child_input_hash.elements,

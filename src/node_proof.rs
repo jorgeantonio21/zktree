@@ -2,7 +2,10 @@ use anyhow::{anyhow, Error};
 use plonky2::{
     field::extension::Extendable,
     hash::hash_types::{HashOut, RichField},
-    plonk::config::{AlgebraicHasher, GenericConfig},
+    plonk::{
+        circuit_builder,
+        config::{AlgebraicHasher, GenericConfig},
+    },
 };
 
 use std::marker::PhantomData;
@@ -49,7 +52,7 @@ where
     ) -> Result<Self, Error> {
         let left_node_input_hash = left_node_proof.input_hash();
         let right_node_input_hash = right_node_proof.input_hash();
-        let input_hash = H::hash_no_pad(
+        let input_hash = H::hash_or_noop(
             &[
                 left_node_input_hash.elements,
                 right_node_input_hash.elements,
@@ -77,7 +80,7 @@ where
         }
 
         // TODO: this is duplicate code, should be removed
-        let circuit_hash = H::hash_no_pad(
+        let circuit_hash = H::hash_or_noop(
             &[
                 left_node_circuit_hash.elements,
                 verifier_circuit_digest.elements,
@@ -124,12 +127,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::result;
+
     use plonky2::{
         field::{
             goldilocks_field::GoldilocksField,
             types::{Field, Sample},
         },
-        hash::poseidon::PoseidonHash,
+        hash::{merkle_tree::MerkleTree, poseidon::PoseidonHash},
         iop::witness::{PartialWitness, WitnessWrite},
         plonk::{
             circuit_builder::CircuitBuilder,
@@ -142,19 +147,20 @@ mod tests {
 
     const D: usize = 2;
     const VERIFIER_CIRCUIT_DIGEST: [usize; 4] = [
-        1314699955453883907,
-        5115682082778291851,
-        17323654947868293245,
-        1745693925650695173,
+        689160538361194993,
+        9390425448090616807,
+        4901294323412691038,
+        6942464195355939881,
     ];
     type F = GoldilocksField;
+    type H = PoseidonHash;
 
     fn hash_data() -> ([F; 4], HashOut<F>, [F; 4], HashOut<F>) {
         let input_original_data = F::rand_array();
-        let input_hash = PoseidonHash::hash_no_pad(&input_original_data);
+        let input_hash = PoseidonHash::hash_or_noop(&input_original_data);
 
         let circuit_original_data = F::rand_array();
-        let circuit_hash = PoseidonHash::hash_no_pad(&circuit_original_data);
+        let circuit_hash = PoseidonHash::hash_or_noop(&circuit_original_data);
 
         (
             input_original_data,
@@ -177,15 +183,15 @@ mod tests {
 
         let input_original_data_targets =
             circuit_builder.add_virtual_targets(input_original_data.len());
-        let input_hash_targets = circuit_builder
-            .hash_n_to_hash_no_pad::<PoseidonHash>(input_original_data_targets.clone());
+        let input_hash_targets =
+            circuit_builder.hash_or_noop::<PoseidonHash>(input_original_data_targets.clone());
 
         circuit_builder.register_public_inputs(&input_hash_targets.elements);
 
         let circuit_original_data_targets =
             circuit_builder.add_virtual_targets(circuit_original_data.len());
-        let circuit_hash_targets = circuit_builder
-            .hash_n_to_hash_no_pad::<PoseidonHash>(circuit_original_data_targets.clone());
+        let circuit_hash_targets =
+            circuit_builder.hash_or_noop::<PoseidonHash>(circuit_original_data_targets.clone());
 
         circuit_builder.register_public_inputs(&circuit_hash_targets.elements);
 
@@ -212,32 +218,40 @@ mod tests {
 
     #[test]
     fn test_node_proof() {
-        let (input_hash, circuit_hash, left_proof_data) = simple_circuit_proof_data();
+        let (left_input_hash, circuit_hash, left_proof_data) = simple_circuit_proof_data();
         // let left_circuit_hash= left_proof_data.circuit_data.verifier_only.circuit_digest;
         let left_node_proof = NodeProof {
             proof_data: left_proof_data,
-            input_hash,
+            input_hash: left_input_hash,
             circuit_hash,
             phantom_data: PhantomData,
         };
 
-        let (input_hash, circuit_hash, right_proof_data) = simple_circuit_proof_data();
+        let (right_input_hash, circuit_hash, right_proof_data) = simple_circuit_proof_data();
         // let right_circuit_hash = right_proof_data.circuit_data.verifier_only.circuit_digest;
         let right_node_proof = NodeProof {
             proof_data: right_proof_data,
-            input_hash,
+            input_hash: right_input_hash,
             circuit_hash,
             phantom_data: PhantomData,
         };
 
         let verifier_circuit_digest = VERIFIER_CIRCUIT_DIGEST.map(|x| F::from_canonical_usize(x));
-        assert!(NodeProof::new_from_children(
+        let result_node_proof = NodeProof::new_from_children(
             left_node_proof,
             right_node_proof,
             HashOut {
                 elements: verifier_circuit_digest,
             },
-        )
-        .is_ok());
+        );
+        assert!(result_node_proof.is_ok());
+
+        let node_proof = result_node_proof.unwrap();
+
+        // verify that the `NodeProof`'s input and circuit hashes are correct
+        let should_be_input_hash =
+            H::hash_or_noop(&[left_input_hash.elements, right_input_hash.elements].concat());
+
+        assert_eq!(node_proof.input_hash, should_be_input_hash);
     }
 }
