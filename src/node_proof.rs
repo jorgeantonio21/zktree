@@ -218,21 +218,21 @@ mod tests {
 
     #[test]
     fn test_node_proof() {
-        let (left_input_hash, circuit_hash, left_proof_data) = simple_circuit_proof_data();
+        let (left_input_hash, left_circuit_hash, left_proof_data) = simple_circuit_proof_data();
         // let left_circuit_hash= left_proof_data.circuit_data.verifier_only.circuit_digest;
         let left_node_proof = NodeProof {
             proof_data: left_proof_data,
             input_hash: left_input_hash,
-            circuit_hash,
+            circuit_hash: left_circuit_hash,
             phantom_data: PhantomData,
         };
 
-        let (right_input_hash, circuit_hash, right_proof_data) = simple_circuit_proof_data();
+        let (right_input_hash, right_circuit_hash, right_proof_data) = simple_circuit_proof_data();
         // let right_circuit_hash = right_proof_data.circuit_data.verifier_only.circuit_digest;
         let right_node_proof = NodeProof {
             proof_data: right_proof_data,
             input_hash: right_input_hash,
-            circuit_hash,
+            circuit_hash: right_circuit_hash,
             phantom_data: PhantomData,
         };
 
@@ -253,5 +253,15 @@ mod tests {
             H::hash_or_noop(&[left_input_hash.elements, right_input_hash.elements].concat());
 
         assert_eq!(node_proof.input_hash, should_be_input_hash);
+
+        let should_be_circuit_hash = H::hash_or_noop(
+            &[
+                left_circuit_hash.elements,
+                VERIFIER_CIRCUIT_DIGEST.map(|x| F::from_canonical_usize(x)),
+                right_circuit_hash.elements,
+            ]
+            .concat(),
+        );
+        assert_eq!(node_proof.circuit_hash, should_be_circuit_hash);
     }
 }
