@@ -2,10 +2,7 @@ use anyhow::{anyhow, Error};
 use plonky2::{
     field::extension::Extendable,
     hash::hash_types::{HashOut, RichField},
-    plonk::{
-        circuit_builder,
-        config::{AlgebraicHasher, GenericConfig},
-    },
+    plonk::config::{AlgebraicHasher, GenericConfig},
 };
 
 use std::marker::PhantomData;
@@ -127,14 +124,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::result;
 
     use plonky2::{
         field::{
             goldilocks_field::GoldilocksField,
             types::{Field, Sample},
         },
-        hash::{merkle_tree::MerkleTree, poseidon::PoseidonHash},
+        hash::poseidon::PoseidonHash,
         iop::witness::{PartialWitness, WitnessWrite},
         plonk::{
             circuit_builder::CircuitBuilder,
