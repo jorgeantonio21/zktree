@@ -1,23 +1,42 @@
 use anyhow::Error;
 use plonky2::{
-    field::extension::Extendable, hash::hash_types::RichField, iop::witness::PartialWitness,
-    plonk::circuit_builder::CircuitBuilder,
+    field::extension::Extendable,
+    hash::hash_types::RichField,
+    iop::witness::PartialWitness,
+    plonk::{circuit_builder::CircuitBuilder, circuit_data::CircuitData, config::GenericConfig},
 };
 
-pub trait CircuitCompiler<F: RichField + Extendable<D>, const D: usize> {
-    type Value;
+pub trait CircuitCompiler<C, F, const D: usize>
+where
+    C: GenericConfig<D, F = F>,
+    F: RichField + Extendable<D>,
+{
+    type RecursiveCommonData;
     type Targets;
     type OutTargets;
 
-    fn evaluate(&self) -> Self::Value;
     fn compile(
         &self,
-        circuit_builder: &mut CircuitBuilder<F, D>,
-    ) -> (Self::Targets, Self::OutTargets);
+        recursive_common_data: Self::RecursiveCommonData,
+    ) -> (CircuitBuilder<F, D>, Self::Targets, Self::OutTargets);
+
+    fn compile_and_build(
+        &mut self,
+        recursive_common_data: Self::RecursiveCommonData,
+    ) -> (CircuitData<F, C, D>, Self::Targets, Self::OutTargets);
+}
+
+pub trait EvaluateFillCircuit<C, F, const D: usize>: CircuitCompiler<C, F, D>
+where
+    C: GenericConfig<D, F = F>,
+    F: RichField + Extendable<D>,
+{
+    type Value;
+
+    fn evaluate(&self) -> Self::Value;
     fn fill(
         &self,
-        partial_witness: &mut PartialWitness<F>,
         targets: Self::Targets,
         out_targets: Self::OutTargets,
-    ) -> Result<(), Error>;
+    ) -> Result<PartialWitness<F>, Error>;
 }

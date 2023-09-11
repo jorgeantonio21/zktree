@@ -10,14 +10,17 @@ use plonky2::{
     iop::witness::{PartialWitness, WitnessWrite},
     plonk::{
         circuit_builder::CircuitBuilder,
-        circuit_data::{CircuitConfig, VerifierCircuitTarget},
+        circuit_data::{CircuitConfig, CircuitData, CommonCircuitData, VerifierCircuitTarget},
         config::{AlgebraicHasher, GenericConfig, Hasher},
         proof::ProofWithPublicInputsTarget,
     },
 };
 
 use crate::{
-    circuit_compiler::CircuitCompiler, proof_data::ProofData, provable::Provable, tree_proof::Proof,
+    circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
+    proof_data::ProofData,
+    provable::Provable,
+    tree_proof::Proof,
 };
 
 pub struct NodeCircuit<C, F, H, P, const D: usize>
@@ -29,7 +32,7 @@ where
 {
     left_child: P,
     right_child: P,
-    verifier_circuit_digest: H::Hash,
+    verifier_circuit_digest: Option<H::Hash>,
     phantom_data: PhantomData<(C, F)>,
 }
 
@@ -40,24 +43,24 @@ where
     H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
-    pub fn new(left_child: P, right_child: P, verifier_circuit_digest: H::Hash) -> Self {
+    pub fn new(left_child: P, right_child: P) -> Self {
         Self {
             left_child,
             right_child,
-            verifier_circuit_digest,
+            verifier_circuit_digest: None,
             phantom_data: PhantomData,
         }
     }
 }
 
-impl<C, F, H, P, const D: usize> CircuitCompiler<F, D> for NodeCircuit<C, F, H, P, D>
+impl<C, F, H, P, const D: usize> CircuitCompiler<C, F, D> for NodeCircuit<C, F, H, P, D>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
-    type Value = (HashOut<F>, HashOut<F>);
+    type RecursiveCommonData = (CommonCircuitData<F, D>, CommonCircuitData<F, D>);
     type Targets = (
         [ProofWithPublicInputsTarget<D>; 2],
         [VerifierCircuitTarget; 2],
@@ -67,45 +70,34 @@ where
 
     fn compile(
         &self,
-        circuit_builder: &mut CircuitBuilder<F, D>,
-    ) -> (Self::Targets, Self::OutTargets) {
+        recursive_common_data: Self::RecursiveCommonData,
+    ) -> (CircuitBuilder<F, D>, Self::Targets, Self::OutTargets) {
+        let mut circuit_builder =
+            CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_zk_config());
+
         // targets for recursive proof verification
         let left_proof_with_pis_targets = circuit_builder
             .add_virtual_proof_with_pis(&self.left_child.proof().circuit_data.common);
 
-        let left_verifier_data_targets = circuit_builder.add_virtual_verifier_data(
-            self.left_child
-                .proof()
-                .circuit_data
-                .common
-                .config
-                .fri_config
-                .cap_height,
-        );
+        let left_verifier_data_targets = circuit_builder
+            .add_virtual_verifier_data(recursive_common_data.0.config.fri_config.cap_height);
 
         circuit_builder.verify_proof::<C>(
             &left_proof_with_pis_targets,
             &left_verifier_data_targets,
-            &self.left_child.proof().circuit_data.common,
+            &recursive_common_data.0,
         );
 
         let right_proof_with_pis_targets = circuit_builder
             .add_virtual_proof_with_pis(&self.right_child.proof().circuit_data.common);
 
-        let right_verifier_data_targets = circuit_builder.add_virtual_verifier_data(
-            self.right_child
-                .proof()
-                .circuit_data
-                .common
-                .config
-                .fri_config
-                .cap_height,
-        );
+        let right_verifier_data_targets = circuit_builder
+            .add_virtual_verifier_data(recursive_common_data.1.config.fri_config.cap_height);
 
         circuit_builder.verify_proof::<C>(
             &right_proof_with_pis_targets,
             &right_verifier_data_targets,
-            &self.right_child.proof().circuit_data.common,
+            &recursive_common_data.1,
         );
 
         // input hash digest verifications
@@ -198,6 +190,7 @@ where
 
         // TODO: Need to add a check that the circuit digest agrees with the left and right childs
         (
+            circuit_builder,
             (
                 [left_proof_with_pis_targets, right_proof_with_pis_targets],
                 [left_verifier_data_targets, right_verifier_data_targets],
@@ -213,6 +206,27 @@ where
         )
     }
 
+    fn compile_and_build(
+        &mut self,
+        recursive_common_data: Self::RecursiveCommonData,
+    ) -> (CircuitData<F, C, D>, Self::Targets, Self::OutTargets) {
+        let (circuit_builder, targets, out_targets) = self.compile(recursive_common_data);
+        let circuit_data = circuit_builder.build::<C>();
+        // Set up the verifier circuit digest
+        self.verifier_circuit_digest = Some(circuit_data.verifier_only.circuit_digest);
+        (circuit_data, targets, out_targets)
+    }
+}
+
+impl<C, F, H, P, const D: usize> EvaluateFillCircuit<C, F, D> for NodeCircuit<C, F, H, P, D>
+where
+    C: GenericConfig<D, F = F, Hasher = H>,
+    F: RichField + Extendable<D>,
+    H: AlgebraicHasher<F>,
+    P: Proof<C, F, D>,
+{
+    type Value = (HashOut<F>, HashOut<F>);
+
     fn evaluate(&self) -> Self::Value {
         let left_child_circuit_hash = self.left_child.circuit_hash();
         let right_child_circuit_hash = self.right_child.circuit_hash();
@@ -223,7 +237,7 @@ where
         let node_circuit_hash = PoseidonHash::hash_or_noop(
             &[
                 left_child_circuit_hash.elements,
-                self.verifier_circuit_digest.elements,
+                self.verifier_circuit_digest.unwrap().elements,
                 right_child_circuit_hash.elements,
             ]
             .concat(),
@@ -242,10 +256,11 @@ where
 
     fn fill(
         &self,
-        partial_witness: &mut PartialWitness<F>,
         targets: Self::Targets,
         out_targets: Self::OutTargets,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<PartialWitness<F>, anyhow::Error> {
+        let mut partial_witness = PartialWitness::<F>::new();
+
         let (
             [left_proof_with_pis_targets, right_proof_with_pis_targets],
             [left_verifier_data_targets, right_verifier_data_targets],
@@ -298,15 +313,17 @@ where
             self.right_child.input_hash(),
         );
 
-        partial_witness
-            .set_hash_target(verifier_circuit_data_targets, self.verifier_circuit_digest);
+        partial_witness.set_hash_target(
+            verifier_circuit_data_targets,
+            self.verifier_circuit_digest.unwrap(),
+        );
 
         let (node_circuit_hash, node_input_hash) = self.evaluate();
 
         partial_witness.set_hash_target(node_circuit_hash_targets, node_circuit_hash);
         partial_witness.set_hash_target(node_input_hash_targets, node_input_hash);
 
-        Ok(())
+        Ok(partial_witness)
     }
 }
 
@@ -317,17 +334,14 @@ where
     H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
-    fn proof(self) -> Result<ProofData<F, C, D>, Error> {
-        let mut circuit_builder =
-            CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
-        let mut partial_witness = PartialWitness::<F>::new();
+    fn proof(mut self) -> Result<ProofData<F, C, D>, Error> {
+        let (circuit_data, targets, out_targets) = self.compile_and_build((
+            self.left_child.proof().circuit_data.common.clone(),
+            self.right_child.proof().circuit_data.common.clone(),
+        ));
+        let partial_witness = self.fill(targets, out_targets)?;
 
-        let (targets, out_targets) = self.compile(&mut circuit_builder);
-        self.fill(&mut partial_witness, targets, out_targets)?;
-
-        let circuit_data = circuit_builder.build::<C>();
-
-        if circuit_data.verifier_only.circuit_digest != self.verifier_circuit_digest {
+        if circuit_data.verifier_only.circuit_digest != self.verifier_circuit_digest.unwrap() {
             return Err(anyhow!("Verifier circuit digest is not valid !"));
         }
         let proof_with_pis = circuit_data.prove(partial_witness)?;

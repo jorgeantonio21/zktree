@@ -1,4 +1,5 @@
 pub mod circuit_compiler;
+pub mod leaf_circuit;
 pub mod leaf_proof;
 pub mod node_circuit;
 pub mod node_proof;

@@ -12,8 +12,7 @@ where
     F: RichField + Extendable<D>,
     C: GenericConfig<D, F = F>,
 {
-    input_hash: H,
-    circuit_hash: H,
+    user_input_hashes: Vec<H>,
     proof_data: ProofData<F, C, D>,
 }
 
@@ -23,10 +22,10 @@ where
     F: RichField + Extendable<D>,
     C: GenericConfig<D, F = F>,
 {
-    pub fn new(input_hash: H, circuit_hash: H, proof_data: ProofData<F, C, D>) -> Self {
+    pub fn new(user_input_hashes: Vec<H>, proof_data: ProofData<F, C, D>) -> Self {
         Self {
-            input_hash,
-            circuit_hash,
+            user_input_hashes,
+            // user_circuit_hash,
             proof_data,
         }
     }

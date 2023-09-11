@@ -45,7 +45,6 @@ where
     pub fn new_from_children<P: Proof<C, F, D>>(
         left_node_proof: P,
         right_node_proof: P,
-        verifier_circuit_digest: H::Hash,
     ) -> Result<Self, Error> {
         let left_node_input_hash = left_node_proof.input_hash();
         let right_node_input_hash = right_node_proof.input_hash();
@@ -76,6 +75,11 @@ where
             ));
         }
 
+        let node_circuit = NodeCircuit::new(left_node_proof, right_node_proof);
+        let proof_data = node_circuit.proof()?;
+
+        let verifier_circuit_digest = proof_data.circuit_data.verifier_only.circuit_digest;
+
         // TODO: this is duplicate code, should be removed
         let circuit_hash = H::hash_or_noop(
             &[
@@ -85,10 +89,6 @@ where
             ]
             .concat(),
         );
-
-        let node_circuit =
-            NodeCircuit::new(left_node_proof, right_node_proof, verifier_circuit_digest);
-        let proof_data = node_circuit.proof()?;
 
         Ok(Self {
             input_hash,
@@ -143,10 +143,10 @@ mod tests {
 
     const D: usize = 2;
     const VERIFIER_CIRCUIT_DIGEST: [usize; 4] = [
-        689160538361194993,
-        9390425448090616807,
-        4901294323412691038,
-        6942464195355939881,
+        16829446864742827679,
+        2103761447533012528,
+        7271535847333132576,
+        5716495700162508072,
     ];
     type F = GoldilocksField;
     type H = PoseidonHash;
@@ -232,17 +232,11 @@ mod tests {
             phantom_data: PhantomData,
         };
 
-        let verifier_circuit_digest = VERIFIER_CIRCUIT_DIGEST.map(|x| F::from_canonical_usize(x));
-        let result_node_proof = NodeProof::new_from_children(
-            left_node_proof,
-            right_node_proof,
-            HashOut {
-                elements: verifier_circuit_digest,
-            },
-        );
-        assert!(result_node_proof.is_ok());
+        let result_node_proof = NodeProof::new_from_children(left_node_proof, right_node_proof);
 
-        let node_proof = result_node_proof.unwrap();
+        // assert!(result_node_proof.is_ok());
+
+        let node_proof = result_node_proof.expect("Failed to generate proof");
 
         // verify that the `NodeProof`'s input and circuit hashes are correct
         let should_be_input_hash =
