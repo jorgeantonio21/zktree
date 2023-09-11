@@ -105,6 +105,10 @@ where
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
 {
+    fn user_public_inputs(&self) -> &[&[F]] {
+        &[]
+    }
+
     fn circuit_hash(&self) -> HashOut<F> {
         self.circuit_hash
     }
@@ -117,7 +121,7 @@ where
         &self.proof_data
     }
 
-    fn verifier_data(&self) -> HashOut<F> {
+    fn circuit_verifier_digest(&self) -> HashOut<F> {
         self.proof().circuit_data.verifier_only.circuit_digest
     }
 }

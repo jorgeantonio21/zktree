@@ -10,7 +10,7 @@ use plonky2::{
     iop::witness::{PartialWitness, WitnessWrite},
     plonk::{
         circuit_builder::CircuitBuilder,
-        circuit_data::{CircuitConfig, CircuitData, CommonCircuitData, VerifierCircuitTarget},
+        circuit_data::{CircuitConfig, CircuitData, VerifierCircuitTarget},
         config::{AlgebraicHasher, GenericConfig, Hasher},
         proof::ProofWithPublicInputsTarget,
     },
@@ -60,7 +60,6 @@ where
     H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
-    type RecursiveCommonData = (CommonCircuitData<F, D>, CommonCircuitData<F, D>);
     type Targets = (
         [ProofWithPublicInputsTarget<D>; 2],
         [VerifierCircuitTarget; 2],
@@ -68,10 +67,7 @@ where
     ); // [HashOutTarget; 4];
     type OutTargets = (HashOutTarget, HashOutTarget);
 
-    fn compile(
-        &self,
-        recursive_common_data: Self::RecursiveCommonData,
-    ) -> (CircuitBuilder<F, D>, Self::Targets, Self::OutTargets) {
+    fn compile(&self) -> (CircuitBuilder<F, D>, Self::Targets, Self::OutTargets) {
         let mut circuit_builder =
             CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_zk_config());
 
@@ -79,25 +75,39 @@ where
         let left_proof_with_pis_targets = circuit_builder
             .add_virtual_proof_with_pis(&self.left_child.proof().circuit_data.common);
 
-        let left_verifier_data_targets = circuit_builder
-            .add_virtual_verifier_data(recursive_common_data.0.config.fri_config.cap_height);
+        let left_verifier_data_targets = circuit_builder.add_virtual_verifier_data(
+            self.left_child
+                .proof()
+                .circuit_data
+                .common
+                .config
+                .fri_config
+                .cap_height,
+        );
 
         circuit_builder.verify_proof::<C>(
             &left_proof_with_pis_targets,
             &left_verifier_data_targets,
-            &recursive_common_data.0,
+            &self.left_child.proof().circuit_data.common,
         );
 
         let right_proof_with_pis_targets = circuit_builder
             .add_virtual_proof_with_pis(&self.right_child.proof().circuit_data.common);
 
-        let right_verifier_data_targets = circuit_builder
-            .add_virtual_verifier_data(recursive_common_data.1.config.fri_config.cap_height);
+        let right_verifier_data_targets = circuit_builder.add_virtual_verifier_data(
+            self.right_child
+                .proof()
+                .circuit_data
+                .common
+                .config
+                .fri_config
+                .cap_height,
+        );
 
         circuit_builder.verify_proof::<C>(
             &right_proof_with_pis_targets,
             &right_verifier_data_targets,
-            &recursive_common_data.1,
+            &self.right_child.proof().circuit_data.common,
         );
 
         // input hash digest verifications
@@ -130,13 +140,13 @@ where
             right_verifier_data_targets.circuit_digest,
         );
 
-        let verifier_circuit_data_targets = circuit_builder.add_virtual_hash();
+        let verifier_circuit_digest_targets = circuit_builder.add_virtual_hash();
 
         let should_be_node_circuit_hash_targets = circuit_builder
             .hash_or_noop::<<C as GenericConfig<D>>::Hasher>(
                 [
                     left_child_circuit_hash_targets.elements,
-                    verifier_circuit_data_targets.elements,
+                    verifier_circuit_digest_targets.elements,
                     right_child_circuit_hash_targets.elements,
                 ]
                 .concat(),
@@ -199,18 +209,15 @@ where
                     right_child_input_hash_targets,
                     left_child_circuit_hash_targets,
                     right_child_circuit_hash_targets,
-                    verifier_circuit_data_targets,
+                    verifier_circuit_digest_targets,
                 ],
             ),
             (node_circuit_hash_targets, node_input_hash_targets),
         )
     }
 
-    fn compile_and_build(
-        &mut self,
-        recursive_common_data: Self::RecursiveCommonData,
-    ) -> (CircuitData<F, C, D>, Self::Targets, Self::OutTargets) {
-        let (circuit_builder, targets, out_targets) = self.compile(recursive_common_data);
+    fn compile_and_build(&mut self) -> (CircuitData<F, C, D>, Self::Targets, Self::OutTargets) {
+        let (circuit_builder, targets, out_targets) = self.compile();
         let circuit_data = circuit_builder.build::<C>();
         // Set up the verifier circuit digest
         self.verifier_circuit_digest = Some(circuit_data.verifier_only.circuit_digest);
@@ -335,10 +342,7 @@ where
     P: Proof<C, F, D>,
 {
     fn proof(mut self) -> Result<ProofData<F, C, D>, Error> {
-        let (circuit_data, targets, out_targets) = self.compile_and_build((
-            self.left_child.proof().circuit_data.common.clone(),
-            self.right_child.proof().circuit_data.common.clone(),
-        ));
+        let (circuit_data, targets, out_targets) = self.compile_and_build();
         let partial_witness = self.fill(targets, out_targets)?;
 
         if circuit_data.verifier_only.circuit_digest != self.verifier_circuit_digest.unwrap() {

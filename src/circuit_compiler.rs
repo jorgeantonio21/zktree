@@ -11,19 +11,12 @@ where
     C: GenericConfig<D, F = F>,
     F: RichField + Extendable<D>,
 {
-    type RecursiveCommonData;
     type Targets;
     type OutTargets;
 
-    fn compile(
-        &self,
-        recursive_common_data: Self::RecursiveCommonData,
-    ) -> (CircuitBuilder<F, D>, Self::Targets, Self::OutTargets);
+    fn compile(&self) -> (CircuitBuilder<F, D>, Self::Targets, Self::OutTargets);
 
-    fn compile_and_build(
-        &mut self,
-        recursive_common_data: Self::RecursiveCommonData,
-    ) -> (CircuitData<F, C, D>, Self::Targets, Self::OutTargets);
+    fn compile_and_build(&mut self) -> (CircuitData<F, C, D>, Self::Targets, Self::OutTargets);
 }
 
 pub trait EvaluateFillCircuit<C, F, const D: usize>: CircuitCompiler<C, F, D>
