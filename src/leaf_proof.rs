@@ -1,11 +1,8 @@
 use anyhow::Error;
 use plonky2::{
     field::extension::Extendable,
-    hash::{hash_types::RichField, poseidon::PoseidonHash},
-    plonk::{
-        circuit_builder,
-        config::{AlgebraicHasher, GenericConfig, Hasher},
-    },
+    hash::hash_types::RichField,
+    plonk::config::{AlgebraicHasher, GenericConfig},
 };
 
 use crate::{proof_data::ProofData, tree_proof::Proof};

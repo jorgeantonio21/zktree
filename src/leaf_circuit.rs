@@ -1,30 +1,17 @@
 use std::marker::PhantomData;
 
-use anyhow::{anyhow, Error};
 use plonky2::{
     field::extension::Extendable,
-    hash::{
-        hash_types::{HashOut, HashOutTarget, RichField},
-        poseidon::PoseidonHash,
-    },
-    iop::{
-        target::Target,
-        witness::{PartialWitness, WitnessWrite},
-    },
+    hash::hash_types::{HashOutTarget, RichField},
+    iop::target::Target,
     plonk::{
         circuit_builder::CircuitBuilder,
-        circuit_data::{CircuitConfig, CircuitData, CommonCircuitData, VerifierCircuitTarget},
-        config::{AlgebraicHasher, GenericConfig, Hasher},
-        proof::ProofWithPublicInputsTarget,
+        circuit_data::{CircuitConfig, CircuitData, VerifierCircuitTarget},
+        config::{AlgebraicHasher, GenericConfig},
     },
 };
 
-use crate::{
-    circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
-    proof_data::ProofData,
-    provable::Provable,
-    tree_proof::Proof,
-};
+use crate::{circuit_compiler::CircuitCompiler, tree_proof::Proof};
 
 pub struct LeafCircuit<C, F, H, P, const D: usize>
 where
