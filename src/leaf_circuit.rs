@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use plonky2::{
     field::extension::Extendable,
-    hash::hash_types::{HashOutTarget, RichField},
+    hash::hash_types::{HashOut, HashOutTarget, RichField},
     iop::target::Target,
     plonk::{
         circuit_builder::CircuitBuilder,
@@ -11,7 +11,10 @@ use plonky2::{
     },
 };
 
-use crate::{circuit_compiler::CircuitCompiler, tree_proof::Proof};
+use crate::{
+    circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
+    tree_proof::Proof,
+};
 
 pub struct LeafCircuit<C, F, H, P, const D: usize>
 where
@@ -154,6 +157,27 @@ where
     }
 
     fn compile_and_build(&mut self) -> (CircuitData<F, C, D>, Self::Targets, Self::OutTargets) {
+        todo!()
+    }
+}
+
+impl<C, F, H, P, const D: usize> EvaluateFillCircuit<C, F, D> for LeafCircuit<C, F, H, P, D>
+where
+    C: GenericConfig<D, F = F, Hasher = H>,
+    F: RichField + Extendable<D>,
+    H: AlgebraicHasher<F>,
+    P: Proof<C, F, D>,
+{
+    type Value = (HashOut<F>, HashOut<F>);
+    fn evaluate(&self) -> Self::Value {
+        todo!()
+    }
+
+    fn fill(
+        &self,
+        targets: Self::Targets,
+        out_targets: Self::OutTargets,
+    ) -> Result<plonky2::iop::witness::PartialWitness<F>, anyhow::Error> {
         todo!()
     }
 }
