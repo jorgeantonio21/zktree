@@ -157,7 +157,11 @@ where
     }
 
     fn compile_and_build(&mut self) -> (CircuitData<F, C, D>, Self::Targets, Self::OutTargets) {
-        todo!()
+        let (circuit_builder, targets, out_targets) = self.compile();
+        let circuit_data = circuit_builder.build::<C>();
+        // Set up the verifier circuit digest
+        self.verifier_circuit_digest = Some(circuit_data.verifier_only.circuit_digest);
+        (circuit_data, targets, out_targets)
     }
 }
 
