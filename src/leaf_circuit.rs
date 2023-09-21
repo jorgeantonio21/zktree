@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use plonky2::{
-    field::extension::{algebra, Extendable},
+    field::extension::Extendable,
     hash::{
         hash_types::{HashOut, HashOutTarget, RichField},
         poseidon::PoseidonHash,
