@@ -44,7 +44,7 @@ where
         }
     }
 
-    pub fn new_from_children<'a, P: Proof<C, F, D> + ?Sized>(
+    pub fn new_from_children<'a, P: Proof<C, F, D>>(
         left_node_proof: &'a P,
         right_node_proof: &'a P,
     ) -> Result<Self, Error> {

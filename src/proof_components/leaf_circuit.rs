@@ -44,7 +44,7 @@ where
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
 {
-    pub fn new(user_proof: &UserProof<C, F, D>) -> Self {
+    pub fn new(user_proof: &'a UserProof<C, F, D>) -> Self {
         Self {
             user_proof,
             verifier_circuit_digest: None,
