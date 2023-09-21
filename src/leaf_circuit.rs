@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use plonky2::{
-    field::extension::Extendable,
+    field::extension::{algebra, Extendable},
     hash::{
         hash_types::{HashOut, HashOutTarget, RichField},
         poseidon::PoseidonHash,
@@ -19,6 +19,8 @@ use std::marker::PhantomData;
 
 use crate::{
     circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
+    proof_data::ProofData,
+    provable::Provable,
     tree_proof::Proof,
     user_proof::UserProof,
 };
@@ -228,5 +230,26 @@ where
         );
 
         Ok(partial_witness)
+    }
+}
+
+impl<C, F, H, const D: usize> Provable<F, C, D> for LeafCircuit<C, F, H, D>
+where
+    F: RichField + Extendable<D>,
+    C: GenericConfig<D, F = F, Hasher = H>,
+    H: AlgebraicHasher<F>,
+{
+    fn proof(self) -> Result<ProofData<F, C, D>, anyhow::Error> {
+        let (circuit_builder, targets, out_targets) = self.compile();
+        let partial_witness = self.fill(targets, out_targets)?;
+        let circuit_data = circuit_builder.build::<C>();
+        if circuit_data.verifier_only.circuit_digest != self.verifier_circuit_digest.unwrap() {
+            return Err(anyhow!("Verifier circuit digest is not valid !"));
+        }
+        let proof_with_pis = circuit_data.prove(partial_witness)?;
+        Ok(ProofData {
+            circuit_data,
+            proof_with_pis,
+        })
     }
 }
