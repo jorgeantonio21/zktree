@@ -13,7 +13,7 @@ use plonky2::{
 use crate::{
     leaf_circuit::LeafCircuit,
     proof_data::ProofData,
-    traits::{provable::Provable, tree_proof::Proof},
+    traits::{proof::Proof, provable::Provable},
     user_proof::UserProof,
 };
 

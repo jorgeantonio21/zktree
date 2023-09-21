@@ -20,8 +20,8 @@ use crate::{
     proof_data::ProofData,
     traits::{
         circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
+        proof::Proof,
         provable::Provable,
-        tree_proof::Proof,
     },
 };
 

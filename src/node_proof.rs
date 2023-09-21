@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 use crate::{
     node_circuit::NodeCircuit,
     proof_data::ProofData,
-    traits::{provable::Provable, tree_proof::Proof},
+    traits::{proof::Proof, provable::Provable},
 };
 
 pub struct NodeProof<C, F, H, const D: usize>
