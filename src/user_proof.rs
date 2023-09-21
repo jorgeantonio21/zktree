@@ -61,9 +61,6 @@ where
     }
 
     fn user_public_inputs(&self) -> Vec<&[F]> {
-        self.inputs[..]
-            .iter()
-            .map(AsRef::as_ref)
-            .collect::<Vec<_>>()
+        self.inputs.iter().map(AsRef::as_ref).collect::<Vec<_>>()
     }
 }
