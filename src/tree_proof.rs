@@ -11,7 +11,7 @@ where
     F: RichField + Extendable<D>,
     C: GenericConfig<D, F = F>,
 {
-    fn user_public_inputs(&self) -> &[&[F]];
+    fn user_public_inputs(&self) -> Vec<&[F]>;
     fn circuit_verifier_digest(&self) -> HashOut<F>;
     fn input_hash(&self) -> HashOut<F>;
     fn circuit_hash(&self) -> HashOut<F>;

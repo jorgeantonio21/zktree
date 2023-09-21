@@ -105,8 +105,8 @@ where
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
 {
-    fn user_public_inputs(&self) -> &[&[F]] {
-        &[]
+    fn user_public_inputs(&self) -> Vec<&[F]> {
+        vec![]
     }
 
     fn circuit_hash(&self) -> HashOut<F> {
