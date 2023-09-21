@@ -44,9 +44,9 @@ where
         }
     }
 
-    pub fn new_from_children<P: Proof<C, F, D>>(
-        left_node_proof: P,
-        right_node_proof: P,
+    pub fn new_from_children<'a, P: Proof<C, F, D> + ?Sized>(
+        left_node_proof: &'a P,
+        right_node_proof: &'a P,
     ) -> Result<Self, Error> {
         let left_node_input_hash = left_node_proof.input_hash();
         let right_node_input_hash = right_node_proof.input_hash();
@@ -238,7 +238,7 @@ mod tests {
             phantom_data: PhantomData,
         };
 
-        let result_node_proof = NodeProof::new_from_children(left_node_proof, right_node_proof);
+        let result_node_proof = NodeProof::new_from_children(&left_node_proof, &right_node_proof);
 
         // assert!(result_node_proof.is_ok());
 

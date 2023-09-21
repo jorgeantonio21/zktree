@@ -21,30 +21,30 @@ use crate::{
     proof_components::user_proof::UserProof,
     proof_data::ProofData,
     traits::{
-        circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
         proof::Proof,
         provable::Provable,
+        {circuit_compiler::CircuitCompiler, evaluate_and_fill::EvaluateFillCircuit},
     },
 };
 
-pub struct LeafCircuit<C, F, H, const D: usize>
+pub struct LeafCircuit<'a, C, F, H, const D: usize>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
 {
-    user_proof: UserProof<C, F, D>,
+    user_proof: &'a UserProof<C, F, D>,
     verifier_circuit_digest: Option<H::Hash>,
     phantom_data: PhantomData<(C, F)>,
 }
 
-impl<C, F, H, const D: usize> LeafCircuit<C, F, H, D>
+impl<'a, C, F, H, const D: usize> LeafCircuit<'a, C, F, H, D>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
 {
-    pub fn new(user_proof: UserProof<C, F, D>) -> Self {
+    pub fn new(user_proof: &UserProof<C, F, D>) -> Self {
         Self {
             user_proof,
             verifier_circuit_digest: None,
@@ -53,7 +53,7 @@ where
     }
 }
 
-impl<C, F, H, const D: usize> CircuitCompiler<C, F, D> for LeafCircuit<C, F, H, D>
+impl<'a, C, F, H, const D: usize> CircuitCompiler<C, F, D> for LeafCircuit<'a, C, F, H, D>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
@@ -176,7 +176,7 @@ where
     }
 }
 
-impl<C, F, H, const D: usize> EvaluateFillCircuit<C, F, D> for LeafCircuit<C, F, H, D>
+impl<'a, C, F, H, const D: usize> EvaluateFillCircuit<C, F, D> for LeafCircuit<'a, C, F, H, D>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
@@ -235,7 +235,7 @@ where
     }
 }
 
-impl<C, F, H, const D: usize> Provable<F, C, D> for LeafCircuit<C, F, H, D>
+impl<'a, C, F, H, const D: usize> Provable<F, C, D> for LeafCircuit<'a, C, F, H, D>
 where
     F: RichField + Extendable<D>,
     C: GenericConfig<D, F = F, Hasher = H>,

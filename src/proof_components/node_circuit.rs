@@ -19,33 +19,33 @@ use plonky2::{
 use crate::{
     proof_data::ProofData,
     traits::{
-        circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
         proof::Proof,
         provable::Provable,
+        {circuit_compiler::CircuitCompiler, evaluate_and_fill::EvaluateFillCircuit},
     },
 };
 
-pub struct NodeCircuit<C, F, H, P, const D: usize>
+pub struct NodeCircuit<'a, C, F, H, P, const D: usize>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
-    left_child: P,
-    right_child: P,
+    left_child: &'a P,
+    right_child: &'a P,
     verifier_circuit_digest: Option<H::Hash>,
     phantom_data: PhantomData<(C, F)>,
 }
 
-impl<C, F, H, P, const D: usize> NodeCircuit<C, F, H, P, D>
+impl<'a, C, F, H, P, const D: usize> NodeCircuit<'a, C, F, H, P, D>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
-    pub fn new(left_child: P, right_child: P) -> Self {
+    pub fn new(left_child: &'a P, right_child: &'a P) -> Self {
         Self {
             left_child,
             right_child,
@@ -55,7 +55,7 @@ where
     }
 }
 
-impl<C, F, H, P, const D: usize> CircuitCompiler<C, F, D> for NodeCircuit<C, F, H, P, D>
+impl<'a, C, F, H, P, const D: usize> CircuitCompiler<C, F, D> for NodeCircuit<'a, C, F, H, P, D>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
@@ -227,7 +227,7 @@ where
     }
 }
 
-impl<C, F, H, P, const D: usize> EvaluateFillCircuit<C, F, D> for NodeCircuit<C, F, H, P, D>
+impl<'a, C, F, H, P, const D: usize> EvaluateFillCircuit<C, F, D> for NodeCircuit<'a, C, F, H, P, D>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,
@@ -336,7 +336,7 @@ where
     }
 }
 
-impl<C, F, H, P, const D: usize> Provable<F, C, D> for NodeCircuit<C, F, H, P, D>
+impl<'a, C, F, H, P, const D: usize> Provable<F, C, D> for NodeCircuit<'a, C, F, H, P, D>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
     F: RichField + Extendable<D>,

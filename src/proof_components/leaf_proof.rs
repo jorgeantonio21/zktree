@@ -48,7 +48,7 @@ where
         }
     }
 
-    pub fn new_from_user_proof(user_proof: UserProof<C, F, D>) -> Result<Self, Error> {
+    pub fn new_from_user_proof(user_proof: &UserProof<C, F, D>) -> Result<Self, Error> {
         let user_proof_public_inputs = user_proof.user_public_inputs();
         let hash_user_public_inputs =
             PoseidonHash::hash_or_noop(&user_proof_public_inputs.concat());

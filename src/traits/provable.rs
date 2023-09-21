@@ -1,6 +1,6 @@
 use crate::{
     proof_data::ProofData,
-    traits::circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
+    traits::{circuit_compiler::CircuitCompiler, evaluate_and_fill::EvaluateFillCircuit},
 };
 use anyhow::Error;
 use plonky2::{
