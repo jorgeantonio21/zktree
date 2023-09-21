@@ -18,13 +18,13 @@ use plonky2::{
 use std::marker::PhantomData;
 
 use crate::{
+    proof_components::user_proof::UserProof,
     proof_data::ProofData,
     traits::{
         circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
         proof::Proof,
         provable::Provable,
     },
-    user_proof::UserProof,
 };
 
 pub struct LeafCircuit<C, F, H, const D: usize>

@@ -11,10 +11,10 @@ use plonky2::{
 };
 
 use crate::{
-    leaf_circuit::LeafCircuit,
+    proof_components::leaf_circuit::LeafCircuit,
+    proof_components::user_proof::UserProof,
     proof_data::ProofData,
     traits::{proof::Proof, provable::Provable},
-    user_proof::UserProof,
 };
 
 pub struct LeafProof<C, F, H, const D: usize>

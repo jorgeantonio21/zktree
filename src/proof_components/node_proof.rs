@@ -8,7 +8,7 @@ use plonky2::{
 use std::marker::PhantomData;
 
 use crate::{
-    node_circuit::NodeCircuit,
+    proof_components::node_circuit::NodeCircuit,
     proof_data::ProofData,
     traits::{proof::Proof, provable::Provable},
 };
