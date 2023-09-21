@@ -1,9 +1,7 @@
 use anyhow::Error;
 use plonky2::{
-    field::extension::Extendable,
-    hash::hash_types::RichField,
-    iop::witness::PartialWitness,
-    plonk::{circuit_builder::CircuitBuilder, circuit_data::CircuitData, config::GenericConfig},
+    field::extension::Extendable, hash::hash_types::RichField, iop::witness::PartialWitness,
+    plonk::config::GenericConfig,
 };
 
 use super::circuit_compiler::CircuitCompiler;
