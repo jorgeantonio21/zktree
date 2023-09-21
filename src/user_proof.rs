@@ -7,7 +7,7 @@ use plonky2::{
     plonk::config::{GenericConfig, Hasher},
 };
 
-use crate::{proof_data::ProofData, tree_proof::Proof};
+use crate::{proof_data::ProofData, traits::tree_proof::Proof};
 
 pub type UserInput<F> = Vec<F>;
 

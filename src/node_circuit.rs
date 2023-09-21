@@ -17,10 +17,12 @@ use plonky2::{
 };
 
 use crate::{
-    circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
     proof_data::ProofData,
-    provable::Provable,
-    tree_proof::Proof,
+    traits::{
+        circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
+        provable::Provable,
+        tree_proof::Proof,
+    },
 };
 
 pub struct NodeCircuit<C, F, H, P, const D: usize>

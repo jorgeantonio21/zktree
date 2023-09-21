@@ -8,7 +8,9 @@ use plonky2::{
 use std::marker::PhantomData;
 
 use crate::{
-    node_circuit::NodeCircuit, proof_data::ProofData, provable::Provable, tree_proof::Proof,
+    node_circuit::NodeCircuit,
+    proof_data::ProofData,
+    traits::{provable::Provable, tree_proof::Proof},
 };
 
 pub struct NodeProof<C, F, H, const D: usize>

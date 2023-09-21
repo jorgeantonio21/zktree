@@ -18,10 +18,12 @@ use plonky2::{
 use std::marker::PhantomData;
 
 use crate::{
-    circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
     proof_data::ProofData,
-    provable::Provable,
-    tree_proof::Proof,
+    traits::{
+        circuit_compiler::{CircuitCompiler, EvaluateFillCircuit},
+        provable::Provable,
+        tree_proof::Proof,
+    },
     user_proof::UserProof,
 };
 

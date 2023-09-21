@@ -11,7 +11,9 @@ use plonky2::{
 };
 
 use crate::{
-    leaf_circuit::LeafCircuit, proof_data::ProofData, provable::Provable, tree_proof::Proof,
+    leaf_circuit::LeafCircuit,
+    proof_data::ProofData,
+    traits::{provable::Provable, tree_proof::Proof},
     user_proof::UserProof,
 };
 
