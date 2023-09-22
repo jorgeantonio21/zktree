@@ -26,7 +26,7 @@ where
     C: GenericConfig<D, F = F>,
     F: RichField + Extendable<D>,
 {
-    fn new(
+    pub fn new(
         inputs: Vec<UserInput<F>>,
         user_circuit_hash: HashOut<F>,
         proof_data: ProofData<F, C, D>,

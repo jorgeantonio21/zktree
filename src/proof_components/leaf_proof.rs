@@ -75,7 +75,7 @@ where
         let user_circuit_hash = self.user_circuit_hash;
         let circuit_verifier_hash = self.circuit_verifier_digest();
         PoseidonHash::hash_or_noop(
-            &[user_circuit_hash.elements, circuit_verifier_hash.elements].concat(),
+            &[circuit_verifier_hash.elements, user_circuit_hash.elements].concat(),
         )
     }
 

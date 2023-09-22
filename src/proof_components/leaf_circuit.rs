@@ -105,8 +105,8 @@ where
 
         let should_be_leaf_circuit_hash_targets = circuit_builder.hash_or_noop::<H>(
             [
-                user_verifier_circuit_digest_targets.elements,
                 verifier_circuit_digest_targets.elements,
+                user_verifier_circuit_digest_targets.elements,
             ]
             .concat(),
         );
