@@ -29,7 +29,7 @@ type F = GoldilocksField;
 type C = PoseidonGoldilocksConfig;
 type H = PoseidonHash;
 
-fn simple_circuit() -> (F, F, ProofData<F, C, D>) {
+fn simple_circuit() -> (F, ProofData<F, C, D>) {
     let mut circuit_builder =
         CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_zk_config());
     let mut partial_witness = PartialWitness::<F>::new();
@@ -63,7 +63,7 @@ fn simple_circuit() -> (F, F, ProofData<F, C, D>) {
         proof_with_pis,
     };
 
-    (a, b, proof_data)
+    (c, proof_data)
 }
 
 fn hash_data() -> ([F; 4], HashOut<F>, [F; 4], HashOut<F>) {
@@ -129,9 +129,9 @@ fn simple_circuit_proof_data() -> (
 
 #[test]
 fn test_leaf_proof() {
-    let (a, b, proof_data) = simple_circuit();
+    let (c, proof_data) = simple_circuit();
 
-    let input_hash = PoseidonHash::hash_or_noop(&[a, b]);
+    let input_hash = PoseidonHash::hash_or_noop(&[c]);
     let circuit_hash = proof_data.circuit_data.verifier_only.circuit_digest;
     let leaf_proof = LeafProof::new(input_hash, circuit_hash, proof_data);
 
@@ -150,10 +150,10 @@ fn test_leaf_proof() {
 
 #[test]
 fn test_leaf_proof_2() {
-    let (a, b, proof_data) = simple_circuit();
+    let (c, proof_data) = simple_circuit();
 
     let circuit_hash = proof_data.circuit_data.verifier_only.circuit_digest;
-    let user_proof = UserProof::new(vec![vec![a], vec![b]], circuit_hash, proof_data);
+    let user_proof = UserProof::new(vec![vec![c]], circuit_hash, proof_data);
     let leaf_proof = LeafProof::new_from_user_proof(&user_proof)
         .expect("Failed to generate leaf proof from user proof");
 }

@@ -13,6 +13,7 @@ use plonky2::{
         circuit_builder::CircuitBuilder,
         circuit_data::{CircuitConfig, CircuitData, VerifierCircuitTarget},
         config::{AlgebraicHasher, GenericConfig, Hasher},
+        proof::ProofWithPublicInputsTarget,
     },
 };
 use std::marker::PhantomData;
@@ -59,7 +60,12 @@ where
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
 {
-    type Targets = (Vec<Target>, [HashOutTarget; 3], VerifierCircuitTarget); // [HashOutTarget; 4];
+    type Targets = (
+        Vec<Target>,
+        [HashOutTarget; 3],
+        ProofWithPublicInputsTarget<D>,
+        VerifierCircuitTarget,
+    ); // [HashOutTarget; 4];
     type OutTargets = HashOutTarget;
 
     fn compile(&self) -> (CircuitBuilder<F, D>, Self::Targets, Self::OutTargets) {
@@ -145,6 +151,15 @@ where
             circuit_builder.connect(true_bool_target.target, false_bool_target.target);
         }
 
+        println!(
+            "[DEBUG] flattened user public input targets length = {}",
+            flatten_user_public_inputs_targets.len()
+        );
+        println!(
+            "[DEBUG] user proof with public inputs length = {}",
+            user_proof_with_pis_targets.public_inputs.len()
+        );
+
         (0..flatten_user_public_inputs_targets.len()).for_each(|i| {
             circuit_builder.connect(
                 user_proof_with_pis_targets.public_inputs[i],
@@ -161,6 +176,7 @@ where
                     user_verifier_circuit_digest_targets,
                     verifier_circuit_digest_targets,
                 ],
+                user_proof_with_pis_targets,
                 user_verifier_data_targets,
             ),
             leaf_circuit_hash_targets,
@@ -195,6 +211,7 @@ where
         let (
             flatten_user_public_inputs_targets,
             [hash_user_public_inputs_targets, user_verifier_circuit_digest_targets, verifier_circuit_digest_targets],
+            user_proof_with_pis_targets,
             user_verifier_data_targets,
         ) = targets;
         let leaf_circuit_hash_targets = out_targets;
@@ -217,8 +234,8 @@ where
                 .set_hash_target(verifier_circuit_digest_targets, verifier_circuit_digest);
             let leaf_circuit_hash = PoseidonHash::hash_or_noop(
                 &[
-                    self.user_proof.circuit_verifier_digest().elements,
                     verifier_circuit_digest.elements,
+                    self.user_proof.circuit_verifier_digest().elements,
                 ]
                 .concat(),
             );
@@ -226,6 +243,10 @@ where
         } else {
             return Err(anyhow!("Failed to generate the verifier circuit digest. Please compile the circuit once again"));
         }
+        partial_witness.set_proof_with_pis_target(
+            &user_proof_with_pis_targets,
+            &self.user_proof.proof().proof_with_pis,
+        );
         partial_witness.set_verifier_data_target(
             &user_verifier_data_targets,
             &self.user_proof.proof().circuit_data.verifier_only,
@@ -241,10 +262,9 @@ where
     C: GenericConfig<D, F = F, Hasher = H>,
     H: AlgebraicHasher<F>,
 {
-    fn proof(self) -> Result<ProofData<F, C, D>, anyhow::Error> {
-        let (circuit_builder, targets, out_targets) = self.compile();
+    fn proof(mut self) -> Result<ProofData<F, C, D>, anyhow::Error> {
+        let (circuit_data, targets, out_targets) = self.compile_and_build();
         let partial_witness = self.fill(targets, out_targets)?;
-        let circuit_data = circuit_builder.build::<C>();
         if circuit_data.verifier_only.circuit_digest != self.verifier_circuit_digest.unwrap() {
             return Err(anyhow!("Verifier circuit digest is not valid !"));
         }
