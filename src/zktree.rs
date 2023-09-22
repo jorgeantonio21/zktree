@@ -55,7 +55,7 @@ where
                 )?);
             }
             if node_proofs.len() != (current_child_index + chunk_size) as usize {
-                return Err(anyhow!("Proof generation failed at height {}", height));
+                return Err(anyhow!("Proof generation failed at height {}, node_proofs length = {}, current_child_index + chunk_size = {}", height, node_proofs.len(), current_child_index + chunk_size));
             }
             current_child_index += chunk_size
         }

@@ -1,6 +1,10 @@
 #[cfg(tests)]
-use crate::proof_components::node_proof::NodeProof;
 use crate::{proof_components::node_proof::NodeProof, proof_data::ProofData, traits::proof::Proof};
+use crate::{
+    proof_components::{leaf_proof::LeafProof, node_proof::NodeProof},
+    proof_data::ProofData,
+    traits::proof::Proof,
+};
 
 use plonky2::{
     field::{
@@ -16,7 +20,7 @@ use plonky2::{
     },
 };
 
-use super::{leaf_proof::LeafProof, user_proof::UserProof};
+use super::user_proof::UserProof;
 
 const D: usize = 2;
 const VERIFIER_CIRCUIT_DIGEST: [usize; 4] = [
