@@ -280,6 +280,33 @@ fn test_zktree_verification() {
     zktree.verify().expect("Failed to verify zkTree");
 }
 
+#[test]
+fn text_zktree_verification_large_proofs() {
+    let user_proofs = (0..2_i32.pow(8))
+        .map(|i| {
+            let (a, proof_data) = if i % 4 == 0 {
+                circuit_1()
+            } else if i % 4 == 1 {
+                circuit_2()
+            } else if i % 4 == 2 {
+                circuit_3()
+            } else {
+                circuit_4()
+            };
+
+            let user_proof = UserProof::new(
+                vec![vec![a]],
+                proof_data.circuit_data.verifier_only.circuit_digest,
+                proof_data,
+            );
+            user_proof
+        })
+        .collect::<Vec<_>>();
+
+    let zktree = ZkTree::new(user_proofs).expect("Failed to generate ZkTree from user proofs");
+    assert!(zktree.verify().is_ok())
+}
+
 // #[test]
 // fn test_zktree_fails_if_user_proof_is_malformed() {
 //     let (a1, proof_data1) = malformed_circuit_1();
