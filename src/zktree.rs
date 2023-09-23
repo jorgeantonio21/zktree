@@ -3,13 +3,14 @@ use std::marker::PhantomData;
 use anyhow::{anyhow, Error};
 use plonky2::{
     field::extension::Extendable,
-    hash::hash_types::RichField,
+    hash::{hash_types::RichField, merkle_tree::MerkleTree},
     plonk::config::{AlgebraicHasher, GenericConfig},
 };
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
-use crate::proof_components::{
-    leaf_proof::LeafProof, node_proof::NodeProof, user_proof::UserProof,
+use crate::{
+    proof_components::{leaf_proof::LeafProof, node_proof::NodeProof, user_proof::UserProof},
+    traits::proof::Proof,
 };
 
 pub struct ZkTree<C, F, H, const D: usize>
@@ -41,8 +42,9 @@ where
 
         let mut node_proofs = Vec::with_capacity((1 << (zktree_height + 1)) - 1);
         let mut current_child_index = 0;
+        let mut node_proofs_len = 0;
 
-        for height in 0..(zktree_height - 1) {
+        for height in 0..zktree_height {
             let chunk_size = 1 << (zktree_height - height - 1);
 
             if height == 0 {
@@ -53,17 +55,19 @@ where
                     current_child_index,
                     chunk_size,
                 )?);
+                current_child_index += chunk_size
             }
-            if node_proofs.len() != (current_child_index + chunk_size) as usize {
+            if node_proofs.len() != node_proofs_len + chunk_size as usize {
                 return Err(anyhow!("Proof generation failed at height {}, node_proofs length = {}, current_child_index + chunk_size = {}", height, node_proofs.len(), current_child_index + chunk_size));
             }
-            current_child_index += chunk_size
+
+            node_proofs_len += chunk_size as usize;
         }
 
         Ok(Self {
             user_proofs,
             leaf_proofs,
-            node_proofs: node_proofs,
+            node_proofs,
             _phantom_data: PhantomData,
         })
     }
@@ -85,6 +89,33 @@ where
 
     pub fn get_leaf_proofs(&self) -> Vec<&LeafProof<C, F, H, D>> {
         self.leaf_proofs.iter().collect::<Vec<_>>()
+    }
+
+    pub fn get_node_proofs(&self) -> Vec<&NodeProof<C, F, H, D>> {
+        self.node_proofs.iter().collect::<Vec<_>>()
+    }
+}
+
+impl<C, F, H, const D: usize> ZkTree<C, F, H, D>
+where
+    F: RichField + Extendable<D>,
+    C: GenericConfig<D, F = F, Hasher = H>,
+    H: AlgebraicHasher<F>,
+{
+    pub fn verify(&self) -> Result<(), Error> {
+        let root = self.root();
+        let root_proof_with_pis = root.proof().proof_with_pis.clone();
+        root.proof().circuit_data.verify(root_proof_with_pis)?;
+        let input_tree_leaves = self
+            .user_proofs
+            .iter()
+            .map(|user_proof| user_proof.user_public_inputs().concat())
+            .collect::<Vec<_>>();
+        let input_hashes_merkle_tree = MerkleTree::<F, H>::new(input_tree_leaves, 0);
+        if input_hashes_merkle_tree.cap.0[0] != root.input_hash() {
+            return Err(anyhow!("Input hashes do not match"));
+        }
+        Ok(())
     }
 }
 

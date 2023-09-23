@@ -151,15 +151,6 @@ where
             circuit_builder.connect(true_bool_target.target, false_bool_target.target);
         }
 
-        println!(
-            "[DEBUG] flattened user public input targets length = {}",
-            flatten_user_public_inputs_targets.len()
-        );
-        println!(
-            "[DEBUG] user proof with public inputs length = {}",
-            user_proof_with_pis_targets.public_inputs.len()
-        );
-
         (0..flatten_user_public_inputs_targets.len()).for_each(|i| {
             circuit_builder.connect(
                 user_proof_with_pis_targets.public_inputs[i],

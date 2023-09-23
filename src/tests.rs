@@ -246,6 +246,40 @@ fn test_zktree() {
         .is_ok());
 }
 
+#[test]
+fn test_zktree_verification() {
+    let (a1, proof_data1) = circuit_1();
+    let (a2, proof_data2) = circuit_2();
+    let (a3, proof_data3) = circuit_3();
+    let (a4, proof_data4) = circuit_4();
+
+    let user_proof1 = UserProof::new(
+        vec![vec![a1]],
+        proof_data1.circuit_data.verifier_only.circuit_digest,
+        proof_data1,
+    );
+    let user_proof2 = UserProof::new(
+        vec![vec![a2]],
+        proof_data2.circuit_data.verifier_only.circuit_digest,
+        proof_data2,
+    );
+    let user_proof3 = UserProof::new(
+        vec![vec![a3]],
+        proof_data3.circuit_data.verifier_only.circuit_digest,
+        proof_data3,
+    );
+    let user_proof4 = UserProof::new(
+        vec![vec![a4]],
+        proof_data4.circuit_data.verifier_only.circuit_digest,
+        proof_data4,
+    );
+
+    let zktree = ZkTree::new(vec![user_proof1, user_proof2, user_proof3, user_proof4])
+        .expect("Failed to generate ZkTree from user proofs");
+    assert_eq!(zktree.get_node_proofs().len(), 3);
+    zktree.verify().expect("Failed to verify zkTree");
+}
+
 // #[test]
 // fn test_zktree_fails_if_user_proof_is_malformed() {
 //     let (a1, proof_data1) = malformed_circuit_1();
