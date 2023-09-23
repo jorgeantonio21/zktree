@@ -42,8 +42,8 @@ where
         let mut node_proofs = Vec::with_capacity((1 << (zktree_height + 1)) - 1);
         let mut current_child_index = 0;
 
-        for height in 0..zktree_height {
-            let chunk_size = 1 << (zktree_height - height);
+        for height in 0..(zktree_height - 1) {
+            let chunk_size = 1 << (zktree_height - height - 1);
 
             if height == 0 {
                 node_proofs.extend(generate_node_proofs_from_leaves(&leaf_proofs)?);
@@ -66,6 +66,25 @@ where
             node_proofs: node_proofs,
             _phantom_data: PhantomData,
         })
+    }
+}
+
+impl<C, F, H, const D: usize> ZkTree<C, F, H, D>
+where
+    F: RichField + Extendable<D>,
+    C: GenericConfig<D, F = F, Hasher = H>,
+    H: AlgebraicHasher<F>,
+{
+    pub fn root(&self) -> &NodeProof<C, F, H, D> {
+        self.node_proofs.last().expect("Failed to retrieve root")
+    }
+
+    pub fn get_user_proofs(&self) -> Vec<&UserProof<C, F, D>> {
+        self.user_proofs.iter().collect::<Vec<_>>()
+    }
+
+    pub fn get_leaf_proofs(&self) -> Vec<&LeafProof<C, F, H, D>> {
+        self.leaf_proofs.iter().collect::<Vec<_>>()
     }
 }
 
