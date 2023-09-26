@@ -25,15 +25,15 @@ where
 
 pub(crate) fn generate_node_proofs_from_nodes<C, F, H, const D: usize>(
     node_proofs: &Vec<NodeProof<C, F, H, D>>,
-    current_child_index: i32,
-    chunk_size: i32,
+    start_child_index: usize,
+    node_proofs_len: usize,
 ) -> Result<Vec<NodeProof<C, F, H, D>>, Error>
 where
     F: RichField + Extendable<D>,
     C: GenericConfig<D, F = F, Hasher = H>,
     H: AlgebraicHasher<F> + Send + Sync,
 {
-    ((current_child_index as usize)..((current_child_index + chunk_size) as usize))
+    (start_child_index..node_proofs_len)
         .into_par_iter()
         .step_by(2)
         .map(|i| NodeProof::new_from_children(&node_proofs[i], &node_proofs[i + 1]))

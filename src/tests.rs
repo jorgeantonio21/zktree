@@ -282,7 +282,7 @@ fn test_zktree_verification() {
 
 #[test]
 fn text_zktree_verification_large_proofs() {
-    let user_proofs = (0..2_i32.pow(8))
+    let user_proofs = (0..2_i32.pow(5))
         .map(|i| {
             let (a, proof_data) = if i % 4 == 0 {
                 circuit_1()

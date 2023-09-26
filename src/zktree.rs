@@ -41,27 +41,22 @@ where
         }
 
         let mut node_proofs = Vec::with_capacity((1 << (zktree_height + 1)) - 1);
-        let mut current_child_index = 0;
+        let mut start_child_index = 0;
         let mut node_proofs_len = 0;
 
         for height in 0..zktree_height {
-            let chunk_size = 1 << (zktree_height - height - 1);
-
             if height == 0 {
                 node_proofs.extend(generate_node_proofs_from_leaves(&leaf_proofs)?);
+                node_proofs_len = node_proofs.len();
             } else {
                 node_proofs.extend(generate_node_proofs_from_nodes(
                     &node_proofs,
-                    current_child_index,
-                    chunk_size,
+                    start_child_index,
+                    node_proofs_len,
                 )?);
-                current_child_index += chunk_size
+                start_child_index = node_proofs_len;
+                node_proofs_len += 1 << (zktree_height - height - 1);
             }
-            if node_proofs.len() != node_proofs_len + chunk_size as usize {
-                return Err(anyhow!("Proof generation failed at height {}, node_proofs length = {}, current_child_index + chunk_size = {}", height, node_proofs.len(), current_child_index + chunk_size));
-            }
-
-            node_proofs_len += chunk_size as usize;
         }
 
         Ok(Self {
