@@ -1,3 +1,8 @@
+#[allow(dead_code)]
+use crate::{
+    proof_components::user_proof::UserProof, proof_data::ProofData, traits::proof::Proof,
+    zktree::ZkTree,
+};
 use plonky2::{
     field::{
         goldilocks_field::GoldilocksField,
@@ -9,11 +14,6 @@ use plonky2::{
         circuit_builder::CircuitBuilder, circuit_data::CircuitConfig,
         config::PoseidonGoldilocksConfig,
     },
-};
-
-use crate::{
-    proof_components::user_proof::UserProof, proof_data::ProofData, traits::proof::Proof,
-    zktree::ZkTree,
 };
 
 const D: usize = 2;
