@@ -25,6 +25,25 @@ use crate::{
     },
 };
 
+/// `NodeCircuit` represents an internal node in a zkTree structure for zero-knowledge proofs.
+/// It contains references to proof data for its left and right children and optionally includes a verifier
+/// circuit digest that is used for verifying the integrity and correctness of the entire subtree rooted at this node.
+///
+/// # Type Parameters
+///
+/// * `'a`: Lifetime parameter that dictates the lifetime of the references to the child proofs.
+/// * `C`: Circuit configuration which must satisfy `GenericConfig`.
+/// * `F`: Field type that must implement `RichField` for cryptographic operations and `Extendable<D>` for field extensions.
+/// * `H`: Hasher type that implements `AlgebraicHasher<F>`, used for generating cryptographic hashes within the circuit.
+/// * `P`: Proof type that must implement the `Proof` trait, representing the proofs associated with the children of this node.
+/// * `D`: Dimension of the field extension, a compile-time constant.
+///
+/// # Fields
+///
+/// * `left_child`: A reference to the `Proof` implementation associated with the left child of this node.
+/// * `right_child`: A reference to the `Proof` implementation associated with the right child of this node.
+/// * `verifier_circuit_digest`: An optional hash of the verifier circuit, which is used for verifying the proofs.
+/// * `phantom_data`: `PhantomData` to indicate the use of the generic types `C` and `F`.
 pub struct NodeCircuit<'a, C, F, H, P, const D: usize>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
@@ -45,6 +64,17 @@ where
     H: AlgebraicHasher<F>,
     P: Proof<C, F, D>,
 {
+    /// Constructs a new `NodeCircuit` with references to the left and right child proofs.
+    /// The `verifier_circuit_digest` is initially set to `None` and can be populated later as needed.
+    ///
+    /// # Arguments
+    ///
+    /// * `left_child`: A reference to the left child's proof implementation.
+    /// * `right_child`: A reference to the right child's proof implementation.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new instance of `NodeCircuit`.
     pub fn new(left_child: &'a P, right_child: &'a P) -> Self {
         Self {
             left_child,

@@ -41,6 +41,17 @@ where
     C: GenericConfig<D, F = F>,
     F: RichField + Extendable<D>,
 {
+    /// Constructs a new `UserProof` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `inputs`: A vector of user inputs for the circuit.
+    /// * `user_circuit_hash`: The hash output that represents the user's version of the circuit.
+    /// * `proof_data`: The proof data associated with the circuit.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `UserProof` instance containing the provided data.
     pub fn new(
         inputs: Vec<UserInput<F>>,
         user_circuit_hash: HashOut<F>,

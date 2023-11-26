@@ -28,6 +28,26 @@ use crate::{
     },
 };
 
+/// `LeafCircuit` is a data structure intended to represent a leaf node circuit in a zkTree structure,
+/// specifically within the context of zero-knowledge proofs. It holds a reference to a user's proof
+/// and optionally a verifier circuit digest, typically used for verifying sub-components of a larger
+/// circuit or proof system.
+///
+/// # Type Parameters
+///
+/// * `'a`: Lifetime parameter indicating the lifetime of the reference to `UserProof`.
+/// * `C`: The configuration for the circuit, must satisfy `GenericConfig`.
+/// * `F`: The field type that must implement `RichField` and `Extendable<D>` for the operations
+///   within the circuit.
+/// * `H`: The hasher type that implements `AlgebraicHasher<F>`, used for cryptographic hashing.
+/// * `D`: A compile-time constant that defines the dimension of the field extension.
+///
+/// # Fields
+///
+/// * `user_proof`: A reference to the `UserProof` associated with this leaf circuit.
+/// * `verifier_circuit_digest`: An optional hash of the verifier circuit, representing the
+///   compiled and hashed version of the circuit used to verify proofs.
+/// * `phantom_data`: `PhantomData` used to indicate the use of generic types `C` and `F`.
 pub struct LeafCircuit<'a, C, F, H, const D: usize>
 where
     C: GenericConfig<D, F = F, Hasher = H>,
@@ -45,6 +65,17 @@ where
     F: RichField + Extendable<D>,
     H: AlgebraicHasher<F>,
 {
+    /// Constructs a new `LeafCircuit` with a reference to a given `UserProof`. The
+    /// `verifier_circuit_digest` is initialized as `None`, to be set later if needed.
+    ///
+    /// # Arguments
+    ///
+    /// * `user_proof`: A reference to the `UserProof` that contains the proof data and user
+    ///   inputs for a specific circuit.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new instance of `LeafCircuit`.
     pub fn new(user_proof: &'a UserProof<C, F, D>) -> Self {
         Self {
             user_proof,
@@ -65,7 +96,7 @@ where
         [HashOutTarget; 3],
         ProofWithPublicInputsTarget<D>,
         VerifierCircuitTarget,
-    ); // [HashOutTarget; 4];
+    );
     type OutTargets = HashOutTarget;
 
     fn compile(&self) -> (CircuitBuilder<F, D>, Self::Targets, Self::OutTargets) {

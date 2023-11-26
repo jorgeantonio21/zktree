@@ -13,6 +13,23 @@ use crate::{
     traits::{proof::Proof, provable::Provable},
 };
 
+/// `NodeProof` represents proof data for an internal node in a zkTree structure. It holds the combined proof data of the node's children
+/// and the respective hashes of their inputs and circuits. This struct is essential for constructing
+/// and verifying a proof that spans multiple levels of a circuit hierarchy.
+///
+/// # Type Parameters
+///
+/// * `C`: The configuration of the circuit, which must implement `GenericConfig`.
+/// * `F`: The field type that implements `RichField` and `Extendable<D>`, used for cryptographic operations within the circuit.
+/// * `H`: The hasher type that implements `AlgebraicHasher<F>`, utilized for generating cryptographic hashes.
+/// * `D`: The dimension of the field extension, specified as a compile-time constant.
+///
+/// # Fields
+///
+/// * `proof_data`: The combined proof data of this node's children.
+/// * `input_hash`: The hash of the inputs to this node's circuit.
+/// * `circuit_hash`: The hash of this node's circuit.
+/// * `phantom_data`: `PhantomData` to mark the usage of the hasher type `H`.
 pub struct NodeProof<C, F, H, const D: usize>
 where
     H: AlgebraicHasher<F>,
@@ -31,6 +48,17 @@ where
     F: RichField + Extendable<D>,
     C: GenericConfig<D, F = F, Hasher = H>,
 {
+    /// Creates a new `NodeProof` instance using the provided proof data, input hash, and circuit hash.
+    ///
+    /// # Arguments
+    ///
+    /// * `proof_data`: The proof data for this node.
+    /// * `input_hash`: The hash of the inputs for this node.
+    /// * `circuit_hash`: The hash of this node's circuit.
+    ///
+    /// # Returns
+    ///
+    /// A new `NodeProof` instance.
     pub fn new(
         proof_data: ProofData<F, C, D>,
         input_hash: HashOut<F>,
@@ -44,6 +72,23 @@ where
         }
     }
 
+    /// Constructs a new `NodeProof` from the proof data of its child nodes. It hashes the inputs
+    /// and circuits of the children to create a new aggregated hash for this node. This method also
+    /// verifies that the children share the same circuit verifier data.
+    ///
+    /// # Arguments
+    ///
+    /// * `left_node_proof`: A reference to the proof of the left child node.
+    /// * `right_node_proof`: A reference to the proof of the right child node.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` that, upon success, contains the new `NodeProof` instance, or an `Error` if the child nodes
+    /// have mismatched verifier data or if the proof generation fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the circuit verifier data of the child nodes do not match or if the proof generation fails.
     pub fn new_from_children<'a, P: Proof<C, F, D>>(
         left_node_proof: &'a P,
         right_node_proof: &'a P,
