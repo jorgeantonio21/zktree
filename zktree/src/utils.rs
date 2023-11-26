@@ -6,7 +6,7 @@ use plonky2::{
 };
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
-use crate::proof_components::{leaf_proof::LeafProof, node_proof::NodeProof};
+use crate::components::{leaf_proof::LeafProof, node_proof::NodeProof};
 
 pub(crate) fn generate_node_proofs_from_leaves<C, F, H, const D: usize>(
     leaf_proofs: &Vec<LeafProof<C, F, H, D>>,

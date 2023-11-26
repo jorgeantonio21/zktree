@@ -1,7 +1,6 @@
-#[allow(dead_code)]
+#![allow(dead_code)]
 use crate::{
-    proof_components::user_proof::UserProof, proof_data::ProofData, traits::proof::Proof,
-    zktree::ZkTree,
+    components::user_proof::UserProof, proof_data::ProofData, traits::proof::Proof, zktree::ZkTree,
 };
 use plonky2::{
     field::{

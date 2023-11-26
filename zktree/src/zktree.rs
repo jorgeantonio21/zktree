@@ -8,7 +8,7 @@ use plonky2::{
 };
 
 use crate::{
-    proof_components::{leaf_proof::LeafProof, node_proof::NodeProof, user_proof::UserProof},
+    components::{leaf_proof::LeafProof, node_proof::NodeProof, user_proof::UserProof},
     traits::proof::Proof,
     utils::{generate_node_proofs_from_leaves, generate_node_proofs_from_nodes},
 };
