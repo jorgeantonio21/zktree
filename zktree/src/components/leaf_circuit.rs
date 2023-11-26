@@ -127,6 +127,7 @@ where
         let should_be_hash_user_public_inputs_targets =
             circuit_builder.hash_or_noop::<H>(flatten_user_public_inputs_targets.clone());
 
+        // assert that user hash is well formed
         circuit_builder.connect_hashes(
             should_be_hash_user_public_inputs_targets,
             hash_user_public_inputs_targets,

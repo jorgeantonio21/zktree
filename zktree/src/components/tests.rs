@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::{
     components::{leaf_proof::LeafProof, node_proof::NodeProof},
     proof_data::ProofData,
@@ -162,7 +163,7 @@ fn test_leaf_proof_2() {
 
     let circuit_hash = proof_data.circuit_data.verifier_only.circuit_digest;
     let user_proof = UserProof::new(vec![vec![c]], circuit_hash, proof_data);
-    let leaf_proof = LeafProof::new_from_user_proof(&user_proof)
+    let _leaf_proof = LeafProof::new_from_user_proof(&user_proof)
         .expect("Failed to generate leaf proof from user proof");
 }
 

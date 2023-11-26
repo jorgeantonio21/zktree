@@ -24,7 +24,7 @@ where
 }
 
 pub(crate) fn generate_node_proofs_from_nodes<C, F, H, const D: usize>(
-    node_proofs: &Vec<NodeProof<C, F, H, D>>,
+    node_proofs: &[NodeProof<C, F, H, D>],
     start_child_index: usize,
     node_proofs_len: usize,
 ) -> Result<Vec<NodeProof<C, F, H, D>>, Error>
